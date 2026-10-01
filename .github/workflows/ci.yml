@@ -9,7 +9,30 @@ on:
 permissions:
   contents: read
 
+# Conventional Commits, so the changelog and the version bump can be derived
+# from history rather than remembered. The subject line is all that is checked;
+# scope and body are conventions documented in .github/COMMIT_CONVENTION.md and
+# enforced by review, because a linter that fails on prose gets ignored.
+
 jobs:
+  commits:
+    name: commit message
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate the commit subject
+        run: |
+          bad=$(git log --format=%s -n 20 \
+            | grep -vE '^(feat|fix|perf|refactor|test|docs|chore|build)(\([a-z0-9./-]+\))?!?: .{1,72}$' \
+            || true)
+          if [ -n "$bad" ]; then
+            echo "These subjects do not follow Conventional Commits:"
+            echo "$bad"
+            exit 1
+          fi
+
   test:
     runs-on: ubuntu-latest
     strategy:
