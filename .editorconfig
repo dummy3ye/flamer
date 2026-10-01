@@ -1,0 +1,27 @@
+# EditorConfig helps maintainers define and maintain consistent
+# coding styles between different editors and IDEs
+# https://editorconfig.org
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Long regexes and templates are harder to read when hard-wrapped
+[*.{mjs,js,ts,tsx,py,go,rs}]
+max_line_length = off
+
+[*.md]
+# Trailing double-space is a hard line break in Markdown
+trim_trailing_whitespace = false
+
+[*.{json,yml,yaml,tf,tfvars}]
+indent_size = 2
+
+[Makefile]
+indent_style = tab

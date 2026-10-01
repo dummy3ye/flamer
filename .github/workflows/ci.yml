@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 18 is the floor the README claims, so test the floor and the tip.
+        node: ['18', '20', '22', '24']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Check every file parses
+        run: |
+          find . -name '*.mjs' -not -path './.git/*' -print0 \
+            | xargs -0 -n1 node --check
+
+      - name: Run the test suite
+        run: node --test
+
+  self:
+    # The analyzer run against its own source is the closest thing to a
+    # regression test available without a separate fixture.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Analyze this repository
+        run: node flamer.mjs . --format summary
+
+      - name: The public README must not lie about its own counts
+        run: |
+          actual=$(node --test 2>&1 | grep -oP '^. pass \K[0-9]+')
+          claimed=$(grep -oP '# all \K[0-9]+' README.md | head -1)
+          if [ "$actual" != "$claimed" ]; then
+            echo "README claims $claimed tests, suite reports $actual"
+            exit 1
+          fi
