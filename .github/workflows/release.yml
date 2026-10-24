@@ -60,9 +60,27 @@ jobs:
       - name: Publish to GitHub Packages
         run: |
           npm config set "//npm.pkg.github.com/:_authToken" "$NODE_AUTH_TOKEN" --location=user
-          cp package.json "$RUNNER_TEMP/package.json"
-          trap 'cp "$RUNNER_TEMP/package.json" package.json' EXIT
-          npm pkg set name="@dummy3ye/flamerjs"
-          npm publish --registry=https://npm.pkg.github.com
+          version="$(node -p "require('./package.json').version")"
+          if npm view "@dummy3ye/flamerjs@$version" version --registry=https://npm.pkg.github.com >/dev/null 2>&1; then
+            echo "@dummy3ye/flamerjs@$version is already published; skipping."
+          else
+            cp package.json "$RUNNER_TEMP/package.json"
+            trap 'cp "$RUNNER_TEMP/package.json" package.json' EXIT
+            npm pkg set name="@dummy3ye/flamerjs"
+            npm publish --registry=https://npm.pkg.github.com
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "GitHub Release $RELEASE_TAG already exists; skipping."
+          else
+            gh release create "$RELEASE_TAG" \
+              --title "$RELEASE_TAG" \
+              --generate-notes
+          fi
