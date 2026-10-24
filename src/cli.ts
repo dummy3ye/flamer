@@ -7,7 +7,7 @@
  * terminal-friendly report or JSON. Findings are factual (see SKILL.md).
  */
 
-import { writeFileSync, existsSync } from 'fs';
+import { writeFileSync, existsSync, readFileSync } from 'fs';
 import { resolve, basename } from 'path';
 
 import { walkTree, filesIn, isDir } from './util/fs.js';
@@ -27,6 +27,8 @@ import { LANGUAGES, allExtensions } from './registry.js';
 import { runNativeWorker } from './native.js';
 
 const SPEC_VERSION = 1;
+const CLI_VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+  .version as string;
 
 function parseArgs(argv: string[]) {
   const opts = {
@@ -39,6 +41,7 @@ function parseArgs(argv: string[]) {
     noGit: false,
     noLockfileWarning: false,
     quiet: false,
+    verbose: false,
     scope: null as string | null,
     listLanguages: false,
     help: false,
@@ -82,6 +85,9 @@ function parseArgs(argv: string[]) {
         break;
       case '--quiet':
         opts.quiet = true;
+        break;
+      case '--verbose':
+        opts.verbose = true;
         break;
       case '--color':
         opts.color = true;
@@ -134,6 +140,7 @@ Options:
   --no-lockfile-warning      skip the "no lockfile" suggestion
   --ignore-dir <name>        also skip this directory name (repeatable)
   --quiet                    suppress the human summary
+  --verbose                  show runtime engine and scan details
   --color                    force ANSI colors
   --no-color                 disable ANSI colors
   --engine <all|typescript|rust|cpp>
@@ -428,13 +435,53 @@ function severityIcon(severity: string) {
   return severity === 'LOW' ? '·' : severity === 'INFO' ? 'i' : '!';
 }
 
-function printSummary(report: any, forceColor: boolean | null) {
+function printVerbose(report: any, forceColor: boolean | null) {
+  const enabled = colorEnabled(forceColor);
+  const native = report.metadata.native;
+  let backend = 'typescript';
+  let backendDetail = 'TypeScript analyzers';
+
+  if (native?.fallback) {
+    backendDetail = 'TypeScript fallback';
+  } else if (native?.engine === 'all') {
+    backend = 'rust + cpp';
+    backendDetail = 'Rust and C++ workers';
+  } else if (native?.engine === 'rust') {
+    backend = 'rust';
+    backendDetail = 'Rust worker';
+  } else if (native?.engine === 'cpp') {
+    backend = 'cpp';
+    backendDetail = 'C++ worker';
+  }
+
+  const p = report.project;
+  const lines = [
+    '',
+    ` ${paint(`flamer.js v${CLI_VERSION}`, ANSI.bold + ANSI.cyan, enabled)} ${paint(p.name, ANSI.bold, enabled)}`,
+    ` ${paint('cli', ANSI.dim, enabled)}      : typescript`,
+    ` ${paint('backend', ANSI.dim, enabled)}  : ${backend}`,
+    ` ${paint('details', ANSI.dim, enabled)}   : ${backendDetail}`,
+    ` ${paint('path', ANSI.dim, enabled)}      : ${p.root || p.name}`,
+    ` ${paint('files', ANSI.dim, enabled)}     : ${(p.totalFiles || 0).toLocaleString()}`,
+    ` ${paint('lines', ANSI.dim, enabled)}     : ${(p.totalLines || 0).toLocaleString()}`,
+    ` ${paint('duration', ANSI.dim, enabled)}  : ${report.metadata.durationSeconds.toFixed(2)}s`,
+  ];
+  if (native?.fallback) {
+    lines.push(
+      ` ${paint('fallback', ANSI.dim, enabled)}  : ${[...new Set(native.fallback)].join('; ')}`,
+    );
+  }
+  process.stdout.write(lines.join('\n') + '\n');
+}
+
+function printSummary(report: any, forceColor: boolean | null, verbose = false) {
   const enabled = colorEnabled(forceColor);
   const p = report.project;
   const out = [];
   const width = 62;
   const duration = report.metadata.durationSeconds;
   out.push('');
+  if (verbose) printVerbose(report, forceColor);
   out.push(
     ` ${paint('FLAMER', ANSI.bold + ANSI.cyan, enabled)}  ${paint(p.name, ANSI.bold, enabled)}`,
   );
@@ -514,7 +561,7 @@ async function main() {
   }
 
   if (opts.format === 'summary') {
-    if (!opts.quiet) printSummary(report, opts.color);
+    if (!opts.quiet) printSummary(report, opts.color, opts.verbose);
   } else {
     process.stdout.write(json + '\n');
   }

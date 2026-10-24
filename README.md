@@ -123,6 +123,7 @@ flamerjs [path] [options]
 | `--no-lockfile-warning`                 | Suppress the missing-lockfile suggestion                                      |
 | `--ignore-dir <name>`                   | Ignore an additional directory name; repeatable                               |
 | `--quiet`                               | Suppress the human summary                                                    |
+| `--verbose`                             | Show CLI version, runtime backend, and scan details                           |
 | `--color`                               | Force ANSI colors                                                             |
 | `--no-color`                            | Disable ANSI colors                                                           |
 | `--engine <all\|typescript\|rust\|cpp>` | Run all engines (default) or select one engine                                |
