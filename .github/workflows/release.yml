@@ -78,12 +78,29 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
         run: |
+          version="${RELEASE_TAG#v}"
+          notes_file="$RUNNER_TEMP/release-notes.md"
+          if grep -n "^## \[$version\]" CHANGELOG.md >/dev/null 2>&1; then
+            awk -v ver="$version" '
+              /^## \[/ {
+                if (found) exit
+                if ($0 ~ "\\[" ver "\\]") { found=1; next }
+                next
+              }
+              found && /^## \[/ { exit }
+              found { print }
+            ' CHANGELOG.md | sed '/^$/N;/^\n$/D' > "$notes_file"
+          fi
+          if [ ! -s "$notes_file" ]; then
+            echo "See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/$RELEASE_TAG/CHANGELOG.md) for details." > "$notes_file"
+          fi
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            echo "GitHub Release $RELEASE_TAG already exists; skipping."
+            echo "GitHub Release $RELEASE_TAG already exists; updating notes."
+            gh release edit "$RELEASE_TAG" --notes-file "$notes_file" --title "$RELEASE_TAG"
           else
             gh release create "$RELEASE_TAG" \
               --title "$RELEASE_TAG" \
-              --generate-notes
+              --notes-file "$notes_file"
           fi
 
   publish-native:
@@ -106,7 +123,7 @@ jobs:
           - os: windows-11-arm
             target: win32-arm64
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - uses: actions/checkout@v4
@@ -127,7 +144,33 @@ jobs:
           cmake --build native/core/cpp/build --config Release --parallel
 
       - name: Package native workers
-        run: node scripts/package-native.mjs ${{ matrix.target }} 1.1.1
+        run: node scripts/package-native.mjs ${{ matrix.target }} $(node -p "require('./package.json').version")
+
+      - name: Prepare GitHub release assets
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          target="${{ matrix.target }}"
+          extension=""
+          if [[ "$target" == win32-* ]]; then
+            extension=".exe"
+          fi
+          mkdir -p release-assets
+          cp "native/packages/$target/bin/flamer-core$extension" "release-assets/flamer-core-rust-$target$extension"
+          cp "native/packages/$target/bin/flamer-core-cpp$extension" "release-assets/flamer-core-cpp-$target$extension"
+          (cd release-assets && shasum -a 256 * > checksums-${target}.txt)
+
+      - name: Upload native assets to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          files: |
+            release-assets/flamer-core-rust-${{ matrix.target }}*
+            release-assets/flamer-core-cpp-${{ matrix.target }}*
+            release-assets/checksums-${{ matrix.target }}.txt
+          fail_on_unmatched_files: true
 
       - name: Publish native package
         working-directory: native/packages/${{ matrix.target }}

@@ -21,6 +21,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Native execution failures are explicit for targeted workers and safely fall
   back to TypeScript in the default `all` mode.
 
+## [1.1.2] - 2026-10-24
+
+### Fixed
+
+- Upload native binaries as GitHub Release assets and populate release notes from the changelog.
+- Ensure release workflow uses the current package version for native packaging.
+
 ## [1.1.1] - 2026-10-24
 
 ### Fixed
@@ -132,7 +139,8 @@ Measured on a 3.0 GB monorepo of 98,161 files, 71,150 of them source:
 - `poison` is a separate project. Flamer does not import it, and the handoff is
   a runtime capability check in `SKILL.md` rather than a code dependency.
 
-[Unreleased]: https://github.com/dummy3ye/flamer/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/dummy3ye/flamer/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/dummy3ye/flamer/releases/tag/v1.1.2
 [1.1.1]: https://github.com/dummy3ye/flamer/releases/tag/v1.1.1
 [1.1.0]: https://github.com/dummy3ye/flamer/releases/tag/v1.1.0
 [1.0.0]: https://github.com/dummy3ye/flamer/releases/tag/v1.0.0
