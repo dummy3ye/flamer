@@ -8,7 +8,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_executable(flamer-core-cpp src/main.cpp src/analyzer.cpp)
 target_include_directories(flamer-core-cpp PRIVATE include)
-target_compile_options(flamer-core-cpp PRIVATE -Wall -Wextra -Wpedantic)
+if(MSVC)
+  target_compile_options(flamer-core-cpp PRIVATE /W4 /permissive-)
+else()
+  target_compile_options(flamer-core-cpp PRIVATE -Wall -Wextra -Wpedantic)
+endif()
 
 include(CTest)
 if(BUILD_TESTING)

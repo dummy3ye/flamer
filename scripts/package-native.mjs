@@ -33,6 +33,11 @@ await writeFile(
       version,
       description: `Flamer native workers for ${target}`,
       license: 'MIT',
+      repository: {
+        type: 'git',
+        url: 'https://github.com/dummy3ye/flamer.git',
+      },
+      homepage: 'https://github.com/dummy3ye/flamer#readme',
       os: [target.split('-')[0]],
       cpu: [target.split('-')[1]],
       files: ['bin'],
