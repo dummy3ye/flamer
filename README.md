@@ -3,6 +3,7 @@
 **A fast sanity checker for AI-assisted codebases.**
 
 [![CI](https://github.com/dummy3ye/flamer/actions/workflows/ci.yml/badge.svg)](https://github.com/dummy3ye/flamer/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/dummy3ye/flamer/branch/master/graph/badge.svg)](https://codecov.io/gh/dummy3ye/flamer)
 [![npm](https://img.shields.io/npm/v/flamerjs)](https://www.npmjs.com/package/flamerjs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 

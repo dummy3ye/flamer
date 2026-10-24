@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- CI now builds before tests that execute the bundled CLI.
+- Node 18 builds use a compatible pinned tsup release.
+- Conventional Commit validation accepts the `ci` type.
+
+### Added
+
+- Dedicated Codecov coverage reporting and CodeQL analysis workflows.
+
 ## [0.1.5] - 2026-10-24
 
 ### Added

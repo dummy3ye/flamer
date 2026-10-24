@@ -23,6 +23,7 @@ up. Until then, follow it by hand.
 | `docs`     | documentation only                         | none         |
 | `chore`    | build, CI, dependencies, gitignore         | none         |
 | `build`    | a change to how the project is packaged    | none         |
+| `ci`       | a change to continuous integration         | none         |
 
 ## Scope
 
