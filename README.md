@@ -4,7 +4,8 @@
 
 [![CI](https://img.shields.io/github/actions/workflow/status/dummy3ye/flamer/ci.yml?branch=master&style=for-the-badge&label=CI&labelColor=101418&color=9ccbfb)](https://github.com/dummy3ye/flamer/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/codecov/c/github/dummy3ye/flamer?style=for-the-badge&label=coverage&labelColor=101418&color=b9c8da)](https://codecov.io/gh/dummy3ye/flamer)
-[![GitHub repo size](https://img.shields.io/github/repo-size/dummy3ye/flamer?style=for-the-badge&labelColor=101418&color=d3bfe6)](https://github.com/dummy3ye/flamer)<br>
+[![GitHub repo size](https://img.shields.io/github/repo-size/dummy3ye/flamer?style=for-the-badge&labelColor=101418&color=d3bfe6)](https://github.com/dummy3ye/flamer)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge&labelColor=101418&color=d3bfe6)](LICENSE)
 [![GitHub last commit](https://img.shields.io/github/last-commit/dummy3ye/flamer?style=for-the-badge&labelColor=101418&color=9ccbfb)](https://github.com/dummy3ye/flamer/commits/master)
 [![npm](https://img.shields.io/npm/v/flamerjs?style=for-the-badge&labelColor=101418&color=d3bfe6)](https://www.npmjs.com/package/flamerjs)
