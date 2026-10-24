@@ -1,0 +1,4 @@
+node_modules/
+coverage/
+report.json
+package-lock.json

@@ -1,12 +1,20 @@
 import { join } from 'path';
-import { finding } from '../util/findings.mjs';
-import { readText, filesIn, isDir } from '../util/fs.mjs';
+import { finding } from '../util/findings.js';
+import { readText, filesIn, isDir } from '../util/fs.js';
 
-const PY_MANIFESTS = ['pyproject.toml', 'setup.py', 'setup.cfg', 'requirements.txt', 'Pipfile', 'environment.yml'];
+const PY_MANIFESTS = [
+  'pyproject.toml',
+  'setup.py',
+  'setup.cfg',
+  'requirements.txt',
+  'Pipfile',
+  'environment.yml',
+];
 
 export function analyze(ctx) {
   const out = [];
-  if (!ctx.profile.tooling.isPython && !ctx.sourceFiles.some((f) => f.lang === 'python')) return out;
+  if (!ctx.profile.tooling.isPython && !ctx.sourceFiles.some((f) => f.lang === 'python'))
+    return out;
 
   const foundManifests = [];
   for (const name of PY_MANIFESTS) {
@@ -19,7 +27,7 @@ export function analyze(ctx) {
         severity: 'MEDIUM',
         title: 'Python code with no dependency manifest',
         detail: `None of ${PY_MANIFESTS.join(', ')} present. Dependencies are undeclared and not reproducible.`,
-      })
+      }),
     );
   }
 
@@ -39,10 +47,12 @@ export function analyze(ctx) {
           category: 'deps',
           severity: 'MEDIUM',
           title: `${unpinned.length} unpinned requirement(s) in ${req}`,
-          detail: unpinned.slice(0, 12).join(', ') + '. Unpinned requirements make installs non-reproducible.',
+          detail:
+            unpinned.slice(0, 12).join(', ') +
+            '. Unpinned requirements make installs non-reproducible.',
           files: [req],
           count: unpinned.length,
-        })
+        }),
       );
     }
   }
@@ -67,7 +77,7 @@ export function analyze(ctx) {
         detail: `Virtualenv directories (${venvDirs.join(', ')}) contain thousands of absolute-path-bound files. Files: ${[...new Set(trackedVenv)].slice(0, 5).join(', ')}.`,
         files: [...new Set(trackedVenv)].slice(0, 5),
         count: new Set(trackedVenv).size,
-      })
+      }),
     );
   }
 
@@ -78,16 +88,19 @@ export function analyze(ctx) {
         category: 'vcs',
         severity: 'LOW',
         title: `${pycache.length} Python bytecode file(s) present in the tree`,
-        detail: '__pycache__/*.pyc should be gitignored. They are machine-specific build artifacts.',
+        detail:
+          '__pycache__/*.pyc should be gitignored. They are machine-specific build artifacts.',
         files: pycache.slice(0, 5).map((f) => f.rel),
         count: pycache.length,
-      })
+      }),
     );
   }
 
   const pyFiles = ctx.sourceFiles.filter((f) => f.lang === 'python');
   if (pyFiles.length > 5) {
-    const hasMypy = filesIn(ctx.root).some((f) => ['mypy.ini', '.mypy.ini', 'setup.cfg', 'pyproject.toml'].includes(f));
+    const hasMypy = filesIn(ctx.root).some((f) =>
+      ['mypy.ini', '.mypy.ini', 'setup.cfg', 'pyproject.toml'].includes(f),
+    );
     const hasPyrightCfg = filesIn(ctx.root).includes('pyrightconfig.json');
     if (!hasMypy && !hasPyrightCfg) {
       out.push(
@@ -96,7 +109,7 @@ export function analyze(ctx) {
           severity: 'LOW',
           title: 'No Python type checker configured',
           detail: `${pyFiles.length} Python source file(s) but no mypy/pyright configuration. Type errors go unnoticed.`,
-        })
+        }),
       );
     }
   }

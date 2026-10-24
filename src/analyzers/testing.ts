@@ -4,18 +4,48 @@
  * Ratios are computed against the language's own source files, so a repo that
  * is 90% Rust and 10% Terraform is not judged on a blended number.
  */
-import { finding } from '../util/findings.mjs';
-import { languageById } from '../registry.mjs';
+import { finding } from '../util/findings.js';
+import { languageById } from '../registry.js';
 
 const fmt = (n) => n.toLocaleString('en-US');
 
 /** Test file bands. Chosen so a repo is never praised or damned by a blip. */
 const BANDS = [
-  { min: 0, max: 0.0001, severity: 'CRITICAL', title: 'No tests at all', note: 'This is a house with no smoke detectors.' },
-  { min: 0.0001, max: 0.05, severity: 'HIGH', title: 'Effectively untested', note: 'A rounding error is not a test suite.' },
-  { min: 0.05, max: 0.15, severity: 'MEDIUM', title: 'Sparse test coverage', note: 'Token coverage. The risky paths stay untested.' },
-  { min: 0.15, max: 0.35, severity: 'LOW', title: 'Thin but present test coverage', note: 'Real tests, but a low ratio against production code.' },
-  { min: 0.35, max: 1, severity: 'INFO', title: 'Reasonable test coverage', note: 'Solid ratio. The main gap will be in the untestable edges.' },
+  {
+    min: 0,
+    max: 0.0001,
+    severity: 'CRITICAL',
+    title: 'No tests at all',
+    note: 'This is a house with no smoke detectors.',
+  },
+  {
+    min: 0.0001,
+    max: 0.05,
+    severity: 'HIGH',
+    title: 'Effectively untested',
+    note: 'A rounding error is not a test suite.',
+  },
+  {
+    min: 0.05,
+    max: 0.15,
+    severity: 'MEDIUM',
+    title: 'Sparse test coverage',
+    note: 'Token coverage. The risky paths stay untested.',
+  },
+  {
+    min: 0.15,
+    max: 0.35,
+    severity: 'LOW',
+    title: 'Thin but present test coverage',
+    note: 'Real tests, but a low ratio against production code.',
+  },
+  {
+    min: 0.35,
+    max: 1,
+    severity: 'INFO',
+    title: 'Reasonable test coverage',
+    note: 'Solid ratio. The main gap will be in the untestable edges.',
+  },
 ];
 
 export function analyzeTestRatio(ctx) {
@@ -58,7 +88,7 @@ export function analyzeTestRatio(ctx) {
             `No test files matched the ${lang?.label ?? langId} test patterns ` +
             `(${lang?.tests?.slice(0, 3).join(', ')}) across ${fmt(e.src)} source file(s).`,
           lang: langId,
-        })
+        }),
       );
       continue;
     }
@@ -71,7 +101,7 @@ export function analyzeTestRatio(ctx) {
         detail: `${band.note}`,
         count: e.test,
         lang: langId,
-      })
+      }),
     );
   }
 
@@ -87,19 +117,32 @@ export function analyzeTestFramework(ctx) {
   const has = (name) => ctx.rootFileNames.has(name);
   const anyOf = (names) => names.some((n) => has(n));
 
-  const claimsTests = ctx.profile.dominantLanguage === 'javascript' || ctx.profile.dominantLanguage === 'typescript';
+  const claimsTests =
+    ctx.profile.dominantLanguage === 'javascript' || ctx.profile.dominantLanguage === 'typescript';
   const testFilesExist = ctx.sourceFiles.some((f) => f.isTest);
 
   if (claimsTests && testFilesExist) {
-    const hasRunner = anyOf(['vitest.config.ts', 'vitest.config.js', 'jest.config.js', 'jest.config.ts', 'jest.config.mjs']);
-    if (!hasRunner && !ctx.sourceFiles.some((f) => /\.test\.[cm]?[jt]sx?$/.test(f.rel) || /\.spec\.[cm]?[jt]sx?$/.test(f.rel))) {
+    const hasRunner = anyOf([
+      'vitest.config.ts',
+      'vitest.config.js',
+      'jest.config.js',
+      'jest.config.ts',
+      'jest.config.mjs',
+    ]);
+    if (
+      !hasRunner &&
+      !ctx.sourceFiles.some(
+        (f) => /\.test\.[cm]?[jt]sx?$/.test(f.rel) || /\.spec\.[cm]?[jt]sx?$/.test(f.rel),
+      )
+    ) {
       out.push(
         finding({
           category: 'testing',
           severity: 'LOW',
           title: 'Test files present but no runner configuration found',
-          detail: 'No jest/vitest/mocha config and no conventionally-named spec files were detected.',
-        })
+          detail:
+            'No jest/vitest/mocha config and no conventionally-named spec files were detected.',
+        }),
       );
     }
   }

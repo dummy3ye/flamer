@@ -16,12 +16,12 @@ in the data rather than discovered by a broken script.
 
 Four levels, uppercase, no numeric weights. Every tool uses the same names.
 
-| Level | Means |
-|---|---|
+| Level      | Means                                                                   |
+| ---------- | ----------------------------------------------------------------------- |
 | `CRITICAL` | Actively exploitable, or a live credential. Fix before the next commit. |
-| `HIGH` | A real weakness a reasonable attacker could reach. Fix this cycle. |
-| `MEDIUM` | Bad practice that becomes dangerous in combination. Fix soon. |
-| `LOW` | Hygiene. Fix when the file is next touched. |
+| `HIGH`     | A real weakness a reasonable attacker could reach. Fix this cycle.      |
+| `MEDIUM`   | Bad practice that becomes dangerous in combination. Fix soon.           |
+| `LOW`      | Hygiene. Fix when the file is next touched.                             |
 
 Deliberately absent: `INFO` and `WARNING`. A finding is something wrong. If it
 is only worth mentioning, it is not a finding. `flamer` additionally uses `INFO`
@@ -34,11 +34,11 @@ How sure the tool is that the finding is real, which is a different axis from
 severity. A `CRITICAL` at `possible` confidence is not the same claim as a
 `CRITICAL` at `certain`.
 
-| Level | Means |
-|---|---|
-| `certain` | The pattern is unambiguous and admits no correct reading. |
-| `likely` | The pattern matched and no exemption applied, but a correct reading may still exist. |
-| `possible` | The pattern matched and an exemption might apply, but the tool could not tell. |
+| Level      | Means                                                                                |
+| ---------- | ------------------------------------------------------------------------------------ |
+| `certain`  | The pattern is unambiguous and admits no correct reading.                            |
+| `likely`   | The pattern matched and no exemption applied, but a correct reading may still exist. |
+| `possible` | The pattern matched and an exemption might apply, but the tool could not tell.       |
 
 `poison` defaults to `likely`, never `certain`, because a pattern match cannot
 establish reachability. Only rules that describe something present and wrong,
@@ -55,27 +55,27 @@ suppressions, baselines, and issue links, so retiring one leaves a gap.
 DOMAIN-SUBSYSTEM-NNN
 ```
 
-| Domain | Covers |
-|---|---|
-| `SEC` | Credentials and secrets |
-| `INJ` | Injection |
-| `CRY` | Cryptography and TLS |
-| `AUTH` | Authentication and session handling |
-| `MEM` | Memory safety |
-| `CNI` | Container and image supply chain |
-| `TF` | Terraform and infrastructure as code |
-| `K8S` | Kubernetes manifests |
-| `CI` | CI and pipeline configuration |
-| `ANS` | Ansible |
-| `DEP` | Dependency risk |
-| `FW` | Framework specific security |
-| `TPL` | Template engines and ORM query building |
-| `CFN` | AWS CloudFormation |
-| `PUL` | Pulumi |
-| `HELM` | Helm charts |
-| `NGX` | nginx configuration |
-| `SYS` | systemd units |
-| `GLCI` | GitLab CI |
+| Domain | Covers                                  |
+| ------ | --------------------------------------- |
+| `SEC`  | Credentials and secrets                 |
+| `INJ`  | Injection                               |
+| `CRY`  | Cryptography and TLS                    |
+| `AUTH` | Authentication and session handling     |
+| `MEM`  | Memory safety                           |
+| `CNI`  | Container and image supply chain        |
+| `TF`   | Terraform and infrastructure as code    |
+| `K8S`  | Kubernetes manifests                    |
+| `CI`   | CI and pipeline configuration           |
+| `ANS`  | Ansible                                 |
+| `DEP`  | Dependency risk                         |
+| `FW`   | Framework specific security             |
+| `TPL`  | Template engines and ORM query building |
+| `CFN`  | AWS CloudFormation                      |
+| `PUL`  | Pulumi                                  |
+| `HELM` | Helm charts                             |
+| `NGX`  | nginx configuration                     |
+| `SYS`  | systemd units                           |
+| `GLCI` | GitLab CI                               |
 
 A finding's `ruleId` is enough to look up its documentation, its confidence
 rationale, and its fix. The lookup is `poison.mjs <repo> --explain <ruleId>`.
@@ -89,11 +89,11 @@ syntax:
 // poison-ignore-next-line SEC-ASSIGN-001 committed fixture
 ```
 
-| Form | Effect |
-|---|---|
-| `poison-ignore-next-line <ruleId>` | suppress on the following line |
-| `poison-ignore-line <ruleId>` | suppress on this line |
-| `poison-ignore-file <ruleId>` | suppress for the whole file |
+| Form                                         | Effect                           |
+| -------------------------------------------- | -------------------------------- |
+| `poison-ignore-next-line <ruleId>`           | suppress on the following line   |
+| `poison-ignore-line <ruleId>`                | suppress on this line            |
+| `poison-ignore-file <ruleId>`                | suppress for the whole file      |
 | `poison-ignore-start` / `poison-ignore-stop` | suppress a block, must be paired |
 
 A suppression with no `ruleId` is a usage error, not a blanket suppression.
@@ -106,12 +106,12 @@ repository rather than a line, so there is no line to attach one to.
 
 ## Exit codes
 
-| Code | Meaning |
-|---|---|
-| `0` | Scan completed. Findings may exist; read the report. |
-| `1` | A finding reached the `--fail-on` threshold. |
-| `2` | Usage error. Bad flag, unreadable path, malformed config. |
-| `3` | Internal error. A bug. |
+| Code | Meaning                                                   |
+| ---- | --------------------------------------------------------- |
+| `0`  | Scan completed. Findings may exist; read the report.      |
+| `1`  | A finding reached the `--fail-on` threshold.              |
+| `2`  | Usage error. Bad flag, unreadable path, malformed config. |
+| `3`  | Internal error. A bug.                                    |
 
 Exit `0` never means "clean". It means the scan ran. A tool whose exit code
 claims cleanliness that the report contradicts trains people to trust the code
@@ -127,14 +127,14 @@ have.
 ```jsonc
 {
   "specVersion": 1,
-  "tool": "poison",                 // or "flamer"
+  "tool": "poison", // or "flamer"
   "version": "0.1.0",
   "generatedAt": "2026-10-02T00:00:00.000Z",
   "summary": {
     "total": 116,
     "bySeverity": { "CRITICAL": 4, "HIGH": 58, "MEDIUM": 33, "LOW": 21 },
     "worst": "CRITICAL",
-    "blocking": 62
+    "blocking": 62,
   },
   "findings": [
     {
@@ -149,16 +149,16 @@ have.
       "fix": "Pass an argument list to subprocess.run with shell=False.",
       "cwe": "CWE-78",
       "owasp": "A03:2021",
-      "snippet": "os.system(\"tar czf backup.tgz \" + user_input)"
-    }
+      "snippet": "os.system(\"tar czf backup.tgz \" + user_input)",
+    },
   ],
   "metadata": {
     "filesScanned": 3192,
     "bytesScanned": 233570000,
     "durationSeconds": 6.07,
     "suppressedCount": 0,
-    "analyzers": [{ "id": "secret", "ms": 210, "findings": 12, "error": null }]
-  }
+    "analyzers": [{ "id": "secret", "ms": 210, "findings": 12, "error": null }],
+  },
 }
 ```
 

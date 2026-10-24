@@ -13,16 +13,16 @@ up. Until then, follow it by hand.
 
 ## Types
 
-| Type | Use for | Version bump |
-|---|---|---|
-| `feat` | a new check, a new language, a new flag | minor |
-| `fix` | a wrong finding, a false positive, a crash | patch |
-| `perf` | a measured speedup | patch |
-| `refactor` | no behavior change | none |
-| `test` | tests only | none |
-| `docs` | documentation only | none |
-| `chore` | build, CI, dependencies, gitignore | none |
-| `build` | a change to how the project is packaged | none |
+| Type       | Use for                                    | Version bump |
+| ---------- | ------------------------------------------ | ------------ |
+| `feat`     | a new check, a new language, a new flag    | minor        |
+| `fix`      | a wrong finding, a false positive, a crash | patch        |
+| `perf`     | a measured speedup                         | patch        |
+| `refactor` | no behavior change                         | none         |
+| `test`     | tests only                                 | none         |
+| `docs`     | documentation only                         | none         |
+| `chore`    | build, CI, dependencies, gitignore         | none         |
+| `build`    | a change to how the project is packaged    | none         |
 
 ## Scope
 

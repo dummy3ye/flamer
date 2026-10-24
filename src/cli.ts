@@ -3,60 +3,46 @@
 /**
  * flamer is a language neutral code health auditor.
  *
- * Walks a repository once, runs every registered analyzer, and prints a JSON
- * report. Findings are factual; the roast is composed separately (see
- * SKILL.md). Works on any repo layout: single package, monorepo, or polyglot.
- *
- * Usage:
- *   node flamer.mjs [path] [options]
- *
- * Options:
- *   --package <name>    only analyze the named subproject (alias: --scope)
- *   --path <dir>        repository root (default: cwd)
- *   --format <fmt>      json (default) | summary
- *   --out <file>        write the JSON report to a file
- *   --fail-on <sev>     exit nonzero if any finding is at/above this severity
- *   --max-files <n>     stop walking after n files (default 60000)
- *   --commit-limit <n>  how many commits to inspect (default 1000)
- *   --no-git            skip git analysis
- *   --no-lockfile-warning  skip the "no lockfile" suggestion
- *   --list-languages    print the supported language/ecosystem table
- *   --quiet             suppress the human summary (JSON still printed)
+ * Walks a repository once, runs every registered analyzer, and prints a
+ * terminal-friendly report or JSON. Findings are factual (see SKILL.md).
  */
 
 import { writeFileSync, existsSync } from 'fs';
-import { resolve, basename, join } from 'path';
+import { resolve, basename } from 'path';
 
-import { walkTree, filesIn, isDir } from './lib/util/fs.mjs';
-import { finding, sortFindings, severityTally, worstSeverity, SEVERITIES, rank } from './lib/util/findings.mjs';
-import { detectScopes, buildProfile, projectKind } from './lib/detect.mjs';
-import { scanFile, isSource, isLineStructured } from './lib/scan.mjs';
-import { ANALYZERS } from './lib/analyzers/index.mjs';
-import * as git from './lib/util/git.mjs';
-import { LANGUAGES, allExtensions } from './lib/registry.mjs';
+import { walkTree, filesIn, isDir } from './util/fs.js';
+import {
+  finding,
+  sortFindings,
+  severityTally,
+  worstSeverity,
+  SEVERITIES,
+  rank,
+} from './util/findings.js';
+import { detectScopes, buildProfile, projectKind } from './detect.js';
+import { scanFile, isSource, isLineStructured } from './scan.js';
+import { ANALYZERS } from './analyzers/index.js';
+import * as git from './util/git.js';
+import { LANGUAGES, allExtensions } from './registry.js';
 
-/**
- * The version of docs/SPEC.md this build was written against. Carried in the
- * output so that drift between flamer and poison is visible in the data
- * instead of surfacing as a broken consumer script.
- */
 const SPEC_VERSION = 1;
 
-function parseArgs(argv) {
+function parseArgs(argv: string[]) {
   const opts = {
     root: process.cwd(),
-    format: 'json',
-    out: null,
-    failOn: null,
+    format: 'summary',
+    out: null as string | null,
+    failOn: null as string | null,
     maxFiles: 60000,
     commitLimit: 1000,
     noGit: false,
     noLockfileWarning: false,
     quiet: false,
-    scope: null,
+    scope: null as string | null,
     listLanguages: false,
     help: false,
-    ignoreDirs: [],
+    color: null as boolean | null,
+    ignoreDirs: [] as string[],
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -95,6 +81,12 @@ function parseArgs(argv) {
       case '--quiet':
         opts.quiet = true;
         break;
+      case '--color':
+        opts.color = true;
+        break;
+      case '--no-color':
+        opts.color = false;
+        break;
       case '--list-languages':
         opts.listLanguages = true;
         break;
@@ -104,9 +96,6 @@ function parseArgs(argv) {
         break;
       default:
         if (a.startsWith('-')) {
-          // An unknown flag must not be ignored: the next argument would
-          // otherwise be swallowed as the target path and the scan would
-          // silently run against the wrong directory.
           process.stderr.write(`unknown option: ${a}\nRun with --help for the option list.\n`);
           process.exit(2);
         }
@@ -121,12 +110,12 @@ function printHelp() {
   process.stdout.write(`flamer, language-agnostic code health auditor
 
 Usage:
-  node flamer.mjs [path] [options]
+  flamer [path] [options]
 
 Options:
   --package, --scope <name>  analyze only the named sub-project
   --path <dir>               repository root (default: cwd)
-  --format <json|summary>    output format (default: json)
+  --format <json|summary>    output format (default: summary)
   --out <file>               also write the JSON report to a file
   --fail-on <SEVERITY>       exit 1 if a finding is at/above this severity
                             (${SEVERITIES.join(' | ')})
@@ -136,6 +125,8 @@ Options:
   --no-lockfile-warning      skip the "no lockfile" suggestion
   --ignore-dir <name>        also skip this directory name (repeatable)
   --quiet                    suppress the human summary
+  --color                    force ANSI colors
+  --no-color                 disable ANSI colors
   --list-languages           print the supported language table
   -h, --help                 show this help
 `);
@@ -148,8 +139,7 @@ function printLanguages() {
   }
   process.stdout.write(`\n${allExtensions().length} file extensions recognized.\n`);
 }
-
-function run(opts) {
+function run(opts: any) {
   const started = Date.now();
   const root = opts.root;
 
@@ -175,12 +165,11 @@ function run(opts) {
   const detected = detectScopes(root);
 
   const walkStart = Date.now();
-  let files = [];
   let truncated = false;
-  const collected = [];
-  const walk = walkTree(root, {
+  const collected: any[] = [];
+  walkTree(root, {
     extraIgnores: new Set(opts.ignoreDirs),
-    onFile: (rec) => {
+    onFile: (rec: any) => {
       if (collected.length >= opts.maxFiles) {
         truncated = true;
         return;
@@ -188,7 +177,7 @@ function run(opts) {
       collected.push(scanFile(rec));
     },
   });
-  files = collected;
+  const files = collected;
   const walkMs = Date.now() - walkStart;
 
   const profile = buildProfile(root, detected, files);
@@ -196,9 +185,9 @@ function run(opts) {
   let scopes = profile.scopes;
   let scopedFiles = files;
   if (opts.scope) {
-    const match = scopes.find((s) => s.name === opts.scope);
+    const match = scopes.find((s: any) => s.name === opts.scope);
     if (!match) {
-      const available = scopes.map((s) => s.name || 'root').join(', ') || 'none';
+      const available = scopes.map((s: any) => s.name || 'root').join(', ') || 'none';
       const rep = emptyReport(root, profile, started);
       rep.findings.push(
         finding({
@@ -206,23 +195,20 @@ function run(opts) {
           severity: 'LOW',
           title: `Scope "${opts.scope}" not found`,
           detail: `Available scopes: ${available}.`,
-        })
+        }),
       );
       return { report: rep, exitCode: 0 };
     }
     scopes = [match];
-    // Narrow the walked file set to this scope so counts, bloat stats and test
-    // ratios describe only the requested subproject.
     if (match.path) {
       const prefix = `${match.path}/`;
-      scopedFiles = files.filter((f) => f.rel === match.path || f.rel.startsWith(prefix));
+      scopedFiles = files.filter((f: any) => f.rel === match.path || f.rel.startsWith(prefix));
     }
   }
 
   const sourceFiles = scopedFiles.filter(isSource);
   const structuredFiles = scopedFiles.filter(isLineStructured);
   const rootFileNames = new Set(filesIn(root));
-  // across the repo source count, unaffected by --package scoping.
   const repoSourceFileCount = files.filter(isSource).length;
 
   let gitTracked = null;
@@ -241,15 +227,21 @@ function run(opts) {
     gitTracked,
   };
 
-  const findings = [];
-  const analyzerResults = [];
+  const findings: any[] = [];
+  const analyzerResults: any[] = [];
   for (const a of ANALYZERS) {
     const t0 = Date.now();
     try {
       const res = a.fn(ctx) || [];
       findings.push(...res);
-      analyzerResults.push({ id: a.id, label: a.label, findings: res.length, ms: Date.now() - t0, error: null });
-    } catch (e) {
+      analyzerResults.push({
+        id: a.id,
+        label: a.label,
+        findings: res.length,
+        ms: Date.now() - t0,
+        error: null,
+      });
+    } catch (e: any) {
       const msg = e && e.message ? e.message : String(e);
       findings.push(
         finding({
@@ -257,9 +249,15 @@ function run(opts) {
           severity: 'LOW',
           title: `Analyzer "${a.id}" failed`,
           detail: msg,
-        })
+        }),
       );
-      analyzerResults.push({ id: a.id, label: a.label, findings: 0, ms: Date.now() - t0, error: msg });
+      analyzerResults.push({
+        id: a.id,
+        label: a.label,
+        findings: 0,
+        ms: Date.now() - t0,
+        error: msg,
+      });
     }
   }
 
@@ -275,10 +273,10 @@ function run(opts) {
       layout: profile.layout,
       languages: profile.languages,
       dominantLanguage: profile.dominantLanguage,
-      packages: scopes.map((s) => s.name || 'root'),
+      packages: scopes.map((s: any) => s.name || 'root'),
       totalFiles: scopedFiles.length,
       totalSourceFiles: sourceFiles.length,
-      totalLines: sourceFiles.reduce((s, f) => s + (f.lines || 0), 0),
+      totalLines: sourceFiles.reduce((s: number, f: any) => s + (f.lines || 0), 0),
       tooling: profile.tooling,
     },
     findings: sorted,
@@ -300,45 +298,128 @@ function run(opts) {
   return { report, exitCode };
 }
 
-function emptyReport(root, profile, started) {
+function emptyReport(root: string, profile: any, started: number) {
   return {
     specVersion: SPEC_VERSION,
     tool: 'flamer',
     version: 2,
-    project: { name: basename(root), kind: projectKind(profile), languages: profile.languages, packages: [] },
+    project: {
+      name: basename(root),
+      kind: projectKind(profile),
+      languages: profile.languages,
+      packages: [],
+    },
     findings: [],
-    metadata: { generatedAt: new Date().toISOString(), durationSeconds: (Date.now() - started) / 1000 },
+    metadata: {
+      generatedAt: new Date().toISOString(),
+      durationSeconds: (Date.now() - started) / 1000,
+    },
   };
 }
 
-function printSummary(report) {
+const ANSI = {
+  reset: '\u001b[0m',
+  bold: '\u001b[1m',
+  dim: '\u001b[2m',
+  red: '\u001b[31m',
+  yellow: '\u001b[33m',
+  magenta: '\u001b[35m',
+  cyan: '\u001b[36m',
+  green: '\u001b[32m',
+  gray: '\u001b[90m',
+};
+
+function colorEnabled(force: boolean | null) {
+  if (force !== null) return force;
+  return Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
+}
+
+function paint(text: string, color: string, enabled: boolean) {
+  return enabled ? `${color}${text}${ANSI.reset}` : text;
+}
+
+function severityColor(severity: string) {
+  switch (severity) {
+    case 'CRITICAL':
+      return ANSI.red;
+    case 'HIGH':
+      return ANSI.yellow;
+    case 'MEDIUM':
+      return ANSI.magenta;
+    case 'LOW':
+      return ANSI.gray;
+    default:
+      return ANSI.cyan;
+  }
+}
+
+function severityIcon(severity: string) {
+  return severity === 'LOW' ? '·' : severity === 'INFO' ? 'i' : '!';
+}
+
+function printSummary(report: any, forceColor: boolean | null) {
+  const enabled = colorEnabled(forceColor);
   const p = report.project;
   const out = [];
-  out.push(`Project: ${p.name}  [${p.kind.join(', ')}]  layout=${p.layout}`);
+  const width = 62;
+  const duration = report.metadata.durationSeconds;
+  out.push('');
+  out.push(
+    ` ${paint('FLAMER', ANSI.bold + ANSI.cyan, enabled)}  ${paint(p.name, ANSI.bold, enabled)}`,
+  );
+  out.push(paint(` ${'─'.repeat(width)}`, ANSI.dim, enabled));
   if (p.languages?.length) {
-    out.push(`Languages: ${p.languages.map((l) => l.label).join(', ')}`);
+    out.push(
+      ` ${p.languages.map((l: any) => l.label).join(', ')} ${paint('·', ANSI.dim, enabled)} ` +
+        `${(p.totalFiles || 0).toLocaleString()} files ${paint('·', ANSI.dim, enabled)} ` +
+        `${(p.totalLines || 0).toLocaleString()} lines ${paint('·', ANSI.dim, enabled)} ${duration.toFixed(2)}s`,
+    );
+  } else {
+    out.push(
+      ` ${p.kind?.join(', ') || 'unknown'} ${paint('·', ANSI.dim, enabled)} ${duration.toFixed(2)}s`,
+    );
   }
-  out.push(`Files: ${(p.totalFiles || 0).toLocaleString()} (${(p.totalSourceFiles || 0).toLocaleString()} source, ${(p.totalLines || 0).toLocaleString()} lines)`);
-  out.push(`Findings: ${report.findings.length}  worst=${report.metadata.worst || 'none'}`);
   out.push('');
   const sev = report.metadata.severities || {};
   for (const s of SEVERITIES) {
-    if (sev[s]) out.push(`  ${s.padEnd(9)} ${sev[s]}`);
+    if (sev[s]) {
+      const label = `${severityIcon(s)} ${sev[s]} ${s.toLowerCase()}`;
+      out.push(` ${paint(label, severityColor(s), enabled)}`);
+    }
+  }
+  if (report.findings.length > 0) {
+    out.push('');
+    for (const severity of SEVERITIES) {
+      const findings = report.findings.filter((f: any) => f.severity === severity);
+      if (findings.length === 0) continue;
+      out.push(` ${paint(severity, severityColor(severity), enabled)}`);
+      for (const f of findings) {
+        out.push(
+          `  ${paint(severityIcon(f.severity), severityColor(f.severity), enabled)} ${f.title}`,
+        );
+        if (f.detail) out.push(`    ${paint(f.detail, ANSI.dim, enabled)}`);
+        if (f.files?.length) {
+          out.push(
+            `    ${paint(f.files.slice(0, 5).join(', ') + (f.files.length > 5 ? ' ...' : ''), ANSI.gray, enabled)}`,
+          );
+        }
+      }
+    }
   }
   out.push('');
-  for (const f of report.findings) {
-    out.push(`[${f.severity}] (${f.category}) ${f.title}`);
-    if (f.detail) out.push(`    ${f.detail}`);
-    if (f.files?.length) out.push(`    files: ${f.files.slice(0, 5).join(', ')}${f.files.length > 5 ? ' ...' : ''}`);
+  out.push(paint(` ${'─'.repeat(width)}`, ANSI.dim, enabled));
+  if (report.findings.length === 0) {
+    out.push(` ${paint('✓ No findings · scan completed', ANSI.green, enabled)}`);
+  } else {
+    out.push(
+      ` ${paint(`${report.findings.length} finding${report.findings.length === 1 ? '' : 's'} · scan completed`, ANSI.bold, enabled)}`,
+    );
   }
-  process.stderr.write(out.join('\n') + '\n');
+  process.stdout.write(out.join('\n') + '\n');
 }
 
-// Piping into head/less closes stdout early. Node turns that into an
-// unhandled EPIPE and exits nonzero, so a perfectly normal
-// `flamer.mjs --list-languages | head` would look like a crash.
 for (const stream of [process.stdout, process.stderr]) {
-  stream.on('error', (err) => {
+  stream.on('error', (err: any) => {
     if (err && err.code === 'EPIPE') process.exit(0);
     throw err;
   });
@@ -356,13 +437,13 @@ function main() {
   if (opts.out) {
     try {
       writeFileSync(opts.out, json + '\n');
-    } catch (e) {
+    } catch (e: any) {
       process.stderr.write(`warning: could not write ${opts.out}: ${e.message}\n`);
     }
   }
 
   if (opts.format === 'summary') {
-    if (!opts.quiet) printSummary(report);
+    if (!opts.quiet) printSummary(report, opts.color);
   } else {
     process.stdout.write(json + '\n');
   }

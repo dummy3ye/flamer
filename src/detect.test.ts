@@ -1,12 +1,12 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
-import { detectScopes, buildProfile, projectKind } from './detect.mjs';
-import { walkTree } from './util/fs.mjs';
-import { scanFile, isSource } from './scan.mjs';
+import { detectScopes, buildProfile, projectKind } from './detect.js';
+import { walkTree } from './util/fs.js';
+import { scanFile, isSource } from './scan.js';
 
 /** Materialize a temp repo from a path -> content map. */
 function withRepo(spec, fn) {
@@ -36,53 +36,74 @@ test('detectScopes: a single package at the root', () => {
 });
 
 test('detectScopes: a packages/ monorepo', () => {
-  withRepo({
-    'package.json': PKG('root'),
-    'packages/api/package.json': PKG('@x/api'),
-    'packages/web/package.json': PKG('@x/web'),
-  }, (dir) => {
-    const { layout, scopes } = detectScopes(dir);
-    assert.equal(layout, 'monorepo');
-    const names = scopes.map((s) => s.name);
-    assert.ok(names.includes('api'));
-    assert.ok(names.includes('web'));
-    assert.ok(names.includes('root') || scopes.some((s) => s.isRoot));
-  });
+  withRepo(
+    {
+      'package.json': PKG('root'),
+      'packages/api/package.json': PKG('@x/api'),
+      'packages/web/package.json': PKG('@x/web'),
+    },
+    (dir) => {
+      const { layout, scopes } = detectScopes(dir);
+      assert.equal(layout, 'monorepo');
+      const names = scopes.map((s) => s.name);
+      assert.ok(names.includes('api'));
+      assert.ok(names.includes('web'));
+      assert.ok(names.includes('root') || scopes.some((s) => s.isRoot));
+    },
+  );
 });
 
 test('detectScopes: recognizes an apps/ directory too', () => {
-  withRepo({
-    'package.json': PKG('root'),
-    'apps/site/package.json': PKG('@x/site'),
-  }, (dir) => {
-    assert.equal(detectScopes(dir).layout, 'monorepo');
-  });
+  withRepo(
+    {
+      'package.json': PKG('root'),
+      'apps/site/package.json': PKG('@x/site'),
+    },
+    (dir) => {
+      assert.equal(detectScopes(dir).layout, 'monorepo');
+    },
+  );
 });
 
 test('detectScopes: finds a cargo workspace of crates', () => {
-  withRepo({
-    'Cargo.toml': '[workspace]\nmembers = ["crates/a"]\n',
-    'crates/a/Cargo.toml': '[package]\nname = "a"\n',
-  }, (dir) => {
-    const { scopes } = detectScopes(dir);
-    assert.ok(scopes.some((s) => s.name === 'a'), 'crate a should be a scope');
-  });
+  withRepo(
+    {
+      'Cargo.toml': '[workspace]\nmembers = ["crates/a"]\n',
+      'crates/a/Cargo.toml': '[package]\nname = "a"\n',
+    },
+    (dir) => {
+      const { scopes } = detectScopes(dir);
+      assert.ok(
+        scopes.some((s) => s.name === 'a'),
+        'crate a should be a scope',
+      );
+    },
+  );
 });
 
 test('detectScopes: ignores directories with no manifest', () => {
-  withRepo({
-    'package.json': PKG('root'),
-    'packages/notapkg/readme.md': 'hello',
-  }, (dir) => {
-    const { scopes } = detectScopes(dir);
-    assert.equal(scopes.some((s) => s.name === 'notapkg'), false);
-  });
+  withRepo(
+    {
+      'package.json': PKG('root'),
+      'packages/notapkg/readme.md': 'hello',
+    },
+    (dir) => {
+      const { scopes } = detectScopes(dir);
+      assert.equal(
+        scopes.some((s) => s.name === 'notapkg'),
+        false,
+      );
+    },
+  );
 });
 
 test('detectScopes: detects a .NET solution', () => {
   withRepo({ 'App.sln': 'solution', 'src/App.csproj': '<Project/>' }, (dir) => {
     const { scopes } = detectScopes(dir);
-    assert.ok(scopes.some((s) => s.path === 'src'), 'a directory holding a csproj is a scope');
+    assert.ok(
+      scopes.some((s) => s.path === 'src'),
+      'a directory holding a csproj is a scope',
+    );
   });
 });
 
@@ -113,15 +134,18 @@ test('buildProfile: infers a language from a manifest with no source yet', () =>
 });
 
 test('buildProfile: reports the dominant language by file count', () => {
-  withRepo({
-    'package.json': PKG('x'),
-    'a.ts': 'export const a = 1;\n',
-    'b.ts': 'export const b = 2;\n',
-    'c.py': 'x = 1\n',
-  }, (dir) => {
-    const p = profileOf(dir);
-    assert.equal(p.dominantLanguage, 'typescript');
-  });
+  withRepo(
+    {
+      'package.json': PKG('x'),
+      'a.ts': 'export const a = 1;\n',
+      'b.ts': 'export const b = 2;\n',
+      'c.py': 'x = 1\n',
+    },
+    (dir) => {
+      const p = profileOf(dir);
+      assert.equal(p.dominantLanguage, 'typescript');
+    },
+  );
 });
 
 test('buildProfile: detects the node ecosystem', () => {
@@ -211,17 +235,23 @@ test('projectKind: an empty repo is reported as unknown', () => {
 });
 
 test('buildProfile: is consistent with the scanner on a real tree', () => {
-  withRepo({
-    'package.json': PKG('x'),
-    'src/index.ts': 'export const x = 1;\n',
-    'src/index.test.ts': 'test("x", () => {});\n',
-  }, (dir) => {
-    const files = filesOf(dir);
-    const p = profileOf(dir, files);
-    assert.equal(p.dominantLanguage, 'typescript');
-    // Manifests resolve by filename, so they must not count as source files.
-    const source = files.filter(isSource);
-    assert.equal(source.length, 2);
-    assert.equal(source.some((f) => f.rel === 'package.json'), false);
-  });
+  withRepo(
+    {
+      'package.json': PKG('x'),
+      'src/index.ts': 'export const x = 1;\n',
+      'src/index.test.ts': 'test("x", () => {});\n',
+    },
+    (dir) => {
+      const files = filesOf(dir);
+      const p = profileOf(dir, files);
+      assert.equal(p.dominantLanguage, 'typescript');
+      // Manifests resolve by filename, so they must not count as source files.
+      const source = files.filter(isSource);
+      assert.equal(source.length, 2);
+      assert.equal(
+        source.some((f) => f.rel === 'package.json'),
+        false,
+      );
+    },
+  );
 });

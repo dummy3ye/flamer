@@ -1,0 +1,49 @@
+{
+  "name": "flamerjs",
+  "version": "0.1.5",
+  "description": "Language-agnostic code health auditor that walks a repository once and reports what is wrong with it",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dummy3ye/flamer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dummy3ye/flamer/issues"
+  },
+  "homepage": "https://github.com/dummy3ye/flamer#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "flamer": "./dist/cli.js",
+    "flamerjs": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "prepublishOnly": "npm run lint && npm test && npm run build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:node": "node --test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^25.0.10",
+    "eslint": "^10.13.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "tsup": "^9.0.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^3.2.7"
+  }
+}

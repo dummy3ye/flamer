@@ -23,6 +23,7 @@ export const CATEGORIES = [
   'structure',
   'git',
   'error',
+  'unfinished',
 ];
 
 export function rank(severity) {
@@ -65,7 +66,7 @@ export function sortFindings(findings) {
     (a, b) =>
       rank(a.severity) - rank(b.severity) ||
       a.category.localeCompare(b.category) ||
-      a.title.localeCompare(b.title)
+      a.title.localeCompare(b.title),
   );
 }
 

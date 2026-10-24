@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
@@ -12,7 +12,7 @@ import {
   isGeneratedName,
   DEFAULT_IGNORE_DIRS,
   LOCKFILES,
-} from './fs.mjs';
+} from './fs.js';
 
 /** Build a throwaway tree from a path -> content map. */
 function withTree(spec, fn) {
@@ -30,7 +30,10 @@ function withTree(spec, fn) {
   }
 }
 
-const rels = (dir) => walkTree(dir).files.map((f) => f.rel).sort();
+const rels = (dir) =>
+  walkTree(dir)
+    .files.map((f) => f.rel)
+    .sort();
 
 test('walkTree: finds files at several depths', () => {
   withTree({ 'a.js': '', 'src/b.js': '', 'src/deep/c.js': '' }, (dir) => {
@@ -45,15 +48,21 @@ test('walkTree: skips node_modules at any depth', () => {
 });
 
 test('walkTree: skips build output directories', () => {
-  withTree({ 'a.js': '', 'dist/b.js': '', 'build/c.js': '', 'out/d.js': '', 'coverage/e.js': '' }, (dir) => {
-    assert.deepEqual(rels(dir), ['a.js']);
-  });
+  withTree(
+    { 'a.js': '', 'dist/b.js': '', 'build/c.js': '', 'out/d.js': '', 'coverage/e.js': '' },
+    (dir) => {
+      assert.deepEqual(rels(dir), ['a.js']);
+    },
+  );
 });
 
 test('walkTree: skips language-specific build directories', () => {
-  withTree({ 'a.py': '', 'target/b.rs': '', '__pycache__/c.py': '', '.venv/d.py': '', 'obj/e.cs': '' }, (dir) => {
-    assert.deepEqual(rels(dir), ['a.py']);
-  });
+  withTree(
+    { 'a.py': '', 'target/b.rs': '', '__pycache__/c.py': '', '.venv/d.py': '', 'obj/e.cs': '' },
+    (dir) => {
+      assert.deepEqual(rels(dir), ['a.py']);
+    },
+  );
 });
 
 test('walkTree: descends into .github because it holds CI config', () => {
@@ -88,7 +97,10 @@ test('walkTree: records size, depth and extension', () => {
 test('walkTree: honours extraIgnores', () => {
   withTree({ 'a.js': '', 'keepme/b.js': '' }, (dir) => {
     const { files } = walkTree(dir, { extraIgnores: new Set(['keepme']) });
-    assert.deepEqual(files.map((f) => f.rel), ['a.js']);
+    assert.deepEqual(
+      files.map((f) => f.rel),
+      ['a.js'],
+    );
   });
 });
 
@@ -247,7 +259,17 @@ test('readJSON: returns null for a missing file', () => {
 });
 
 test('LOCKFILES: recognizes lockfiles across ecosystems', () => {
-  for (const f of ['package-lock.json', 'yarn.lock', 'poetry.lock', 'Cargo.lock', 'go.sum', 'Gemfile.lock', 'composer.lock', 'mix.lock', 'pubspec.lock']) {
+  for (const f of [
+    'package-lock.json',
+    'yarn.lock',
+    'poetry.lock',
+    'Cargo.lock',
+    'go.sum',
+    'Gemfile.lock',
+    'composer.lock',
+    'mix.lock',
+    'pubspec.lock',
+  ]) {
     assert.equal(LOCKFILES.has(f), true, `${f} should be a known lockfile`);
   }
 });

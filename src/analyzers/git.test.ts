@@ -1,11 +1,7 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
-import { join } from 'path';
-import { tmpdir } from 'os';
-
-import { analyze } from './git.mjs';
-import { analyze as analyzeUniversal } from './universal.mjs';
+import { analyze } from './git.js';
+import { analyze as analyzeUniversal } from './universal.js';
 
 /** A FileRecord shaped the way lib/scan.mjs produces it. */
 function file(rel, over = {}) {
@@ -53,7 +49,7 @@ const titles = (findings) => findings.map((f) => f.title).join(' | ');
 
 test('git: when git is unavailable, says so instead of crashing', () => {
   const out = analyze(
-    baseCtx({ root: '/definitely/not/a/repo', options: { noGit: false, commitLimit: 0 } })
+    baseCtx({ root: '/definitely/not/a/repo', options: { noGit: false, commitLimit: 0 } }),
   );
   const f = out.find((x) => x.category === 'git');
   assert.ok(f);
@@ -62,7 +58,12 @@ test('git: when git is unavailable, says so instead of crashing', () => {
 
 const bloatCtx = (specs) => {
   const files = specs.map(([rel, lines]) => file(rel, { lines, size: lines * 30 }));
-  return baseCtx({ files, sourceFiles: files, structuredFiles: files, repoSourceFileCount: files.length });
+  return baseCtx({
+    files,
+    sourceFiles: files,
+    structuredFiles: files,
+    repoSourceFileCount: files.length,
+  });
 };
 
 /** The per file bloat finding, as opposed to the across the codebase one. */
@@ -70,7 +71,9 @@ const fileBloat = (out) => out.find((x) => /file\(s\)/.test(x.title) && x.files)
 
 test('bloat: flags a file far above the rest of its language', () => {
   const ctx = bloatCtx([
-    ['a.ts', 50], ['b.ts', 60], ['c.ts', 55],
+    ['a.ts', 50],
+    ['b.ts', 60],
+    ['c.ts', 55],
     ['huge.ts', 4000],
   ]);
   const out = analyzeUniversal(ctx);
@@ -81,13 +84,26 @@ test('bloat: flags a file far above the rest of its language', () => {
 });
 
 test('bloat: stays quiet when every file is a similar size', () => {
-  const ctx = bloatCtx([['a.ts', 50], ['b.ts', 55], ['c.ts', 52]]);
+  const ctx = bloatCtx([
+    ['a.ts', 50],
+    ['b.ts', 55],
+    ['c.ts', 52],
+  ]);
   const out = analyzeUniversal(ctx);
-  assert.equal(out.some((x) => x.category === 'bloat'), false, titles(out));
+  assert.equal(
+    out.some((x) => x.category === 'bloat'),
+    false,
+    titles(out),
+  );
 });
 
 test('bloat: reports the distribution it derived the threshold from', () => {
-  const ctx = bloatCtx([['a.ts', 50], ['b.ts', 60], ['c.ts', 55], ['huge.ts', 4000]]);
+  const ctx = bloatCtx([
+    ['a.ts', 50],
+    ['b.ts', 60],
+    ['c.ts', 55],
+    ['huge.ts', 4000],
+  ]);
   const f = fileBloat(analyzeUniversal(ctx));
   assert.match(f.detail, /median/);
 });
@@ -95,7 +111,12 @@ test('bloat: reports the distribution it derived the threshold from', () => {
 test('bloat: a single huge file is not absorbed into the threshold', () => {
   // Regression: a p90-derived threshold would rise to include the outlier and
   // hide the exact file this check exists to catch.
-  const ctx = bloatCtx([['a.ts', 50], ['b.ts', 60], ['c.ts', 55], ['huge.ts', 4000]]);
+  const ctx = bloatCtx([
+    ['a.ts', 50],
+    ['b.ts', 60],
+    ['c.ts', 55],
+    ['huge.ts', 4000],
+  ]);
   const f = fileBloat(analyzeUniversal(ctx));
   assert.ok(f.files.includes('huge.ts'));
 });
@@ -103,7 +124,11 @@ test('bloat: a single huge file is not absorbed into the threshold', () => {
 test('bloat: treats languages with different norms separately', () => {
   // 400 lines is unremarkable for SQL but large for TypeScript; the analyzer
   // must compare each file against its own language, not the repo as a whole.
-  const ctx = bloatCtx([['q.sql', 400], ['a.ts', 60], ['b.ts', 60]]);
+  const ctx = bloatCtx([
+    ['q.sql', 400],
+    ['a.ts', 60],
+    ['b.ts', 60],
+  ]);
   const findings = analyzeUniversal(ctx).filter((x) => x.lang === 'sql');
   assert.equal(findings.length, 0, 'a single 400-line SQL file is not bloat');
 });
@@ -111,7 +136,10 @@ test('bloat: treats languages with different norms separately', () => {
 test('bloat: reports a structurally oversized codebase', () => {
   const specs = Array.from({ length: 12 }, (_, i) => [`f${i}.ts`, 1200]);
   const out = analyzeUniversal(bloatCtx(specs));
-  assert.ok(out.some((x) => /structurally oversized/.test(x.title)), titles(out));
+  assert.ok(
+    out.some((x) => /structurally oversized/.test(x.title)),
+    titles(out),
+  );
 });
 
 test('bloat: counts every offender but keeps the list bounded', () => {
@@ -139,7 +167,9 @@ test('universal: aggregates markers by keyword', () => {
 
 test('universal: never echoes a raw credential', () => {
   const files = [
-    file('a.ts', { secrets: [{ kind: 'AWS access key id', line: 1, preview: 'AKIA************MPLE' }] }),
+    file('a.ts', {
+      secrets: [{ kind: 'AWS access key id', line: 1, preview: 'AKIA************MPLE' }],
+    }),
   ];
   const out = analyzeUniversal(baseCtx({ files, sourceFiles: files, structuredFiles: files }));
   const all = JSON.stringify(out);
@@ -149,8 +179,12 @@ test('universal: never echoes a raw credential', () => {
 
 test('universal: reports one finding per secret kind, not per match', () => {
   const files = [
-    file('a.ts', { secrets: [{ kind: 'AWS access key id', line: 1, preview: 'AKIA************MPLE' }] }),
-    file('b.ts', { secrets: [{ kind: 'AWS access key id', line: 9, preview: 'ASIA************XX99' }] }),
+    file('a.ts', {
+      secrets: [{ kind: 'AWS access key id', line: 1, preview: 'AKIA************MPLE' }],
+    }),
+    file('b.ts', {
+      secrets: [{ kind: 'AWS access key id', line: 9, preview: 'ASIA************XX99' }],
+    }),
   ];
   const out = analyzeUniversal(baseCtx({ files, sourceFiles: files, structuredFiles: files }));
   const aws = out.filter((x) => /AWS access key/.test(x.title));
@@ -168,5 +202,8 @@ test('universal: unresolved merge conflicts are critical', () => {
 
 test('universal: a clean tree produces no findings', () => {
   const files = [file('a.ts'), file('b.ts', { lines: 20 })];
-  assert.deepEqual(analyzeUniversal(baseCtx({ files, sourceFiles: files, structuredFiles: files })), []);
+  assert.deepEqual(
+    analyzeUniversal(baseCtx({ files, sourceFiles: files, structuredFiles: files })),
+    [],
+  );
 });

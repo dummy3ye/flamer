@@ -5,17 +5,10 @@
  * results on them (a minified notebook is one enormous "line"). This analyzer
  * parses the notebook structure instead.
  */
-import { finding } from '../util/findings.mjs';
-import { readText } from '../util/fs.mjs';
+import { finding } from '../util/findings.js';
+import { readText } from '../util/fs.js';
 
 const fmtKB = (bytes) => `${Math.round(bytes / 1024)}KB`;
-
-function cellText(cell) {
-  const s = cell?.source;
-  if (Array.isArray(s)) return s.join('');
-  if (typeof s === 'string') return s;
-  return '';
-}
 
 function outputText(output) {
   if (typeof output?.text === 'string') return output.text;
@@ -52,7 +45,7 @@ export function analyze(ctx) {
           title: `Invalid JSON in notebook ${nb.rel}`,
           detail: 'The .ipynb could not be parsed. It is likely corrupt or was hand-edited.',
           files: [nb.rel],
-        })
+        }),
       );
       continue;
     }
@@ -67,11 +60,19 @@ export function analyze(ctx) {
       if (cell.execution_count != null) nbRun = true;
       for (const output of cell.outputs || []) {
         nbOutputs++;
-        if (output.data?.['image/png'] || output.data?.['image/jpeg'] || output.data?.['application/octet-stream']) {
+        if (
+          output.data?.['image/png'] ||
+          output.data?.['image/jpeg'] ||
+          output.data?.['application/octet-stream']
+        ) {
           nbImages++;
         }
         const text = outputText(output);
-        if (/AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{36}|-----BEGIN [A-Z ]*PRIVATE KEY|sk-[A-Za-z0-9]{32}/.test(text)) {
+        if (
+          /AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{36}|-----BEGIN [A-Z ]*PRIVATE KEY|sk-[A-Za-z0-9]{32}/.test(
+            text,
+          )
+        ) {
           nbSecrets++;
         }
         if (output.output_type === 'error') {
@@ -100,7 +101,7 @@ export function analyze(ctx) {
         files: outputFiles.slice(0, 8),
         count: withOutputs,
         lang: 'notebook',
-      })
+      }),
     );
   }
 
@@ -110,10 +111,11 @@ export function analyze(ctx) {
         category: 'bloat',
         severity: 'LOW',
         title: `${embeddedImages} notebook(s) contain embedded base64 image data`,
-        detail: 'Plots stored as base64 PNGs. Each one is a permanent, uncompressible blob in git history.',
+        detail:
+          'Plots stored as base64 PNGs. Each one is a permanent, uncompressible blob in git history.',
         count: embeddedImages,
         lang: 'notebook',
-      })
+      }),
     );
   }
 
@@ -123,10 +125,11 @@ export function analyze(ctx) {
         category: 'bloat',
         severity: 'CRITICAL',
         title: `Credential-looking data in ${secretOutputs} notebook output(s)`,
-        detail: 'A cell printed something matching a credential pattern. Outputs are committed and shared. Rotate anything real.',
+        detail:
+          'A cell printed something matching a credential pattern. Outputs are committed and shared. Rotate anything real.',
         count: secretOutputs,
         lang: 'notebook',
-      })
+      }),
     );
   }
 
@@ -136,10 +139,11 @@ export function analyze(ctx) {
         category: 'hygiene',
         severity: 'LOW',
         title: `${runInOrder} notebook(s) saved with execution order intact`,
-        detail: 'Non-null execution_count means cells were run top-to-bottom. Restart-and-run-all before sharing to prove the notebook is self-contained.',
+        detail:
+          'Non-null execution_count means cells were run top-to-bottom. Restart-and-run-all before sharing to prove the notebook is self-contained.',
         count: runInOrder,
         lang: 'notebook',
-      })
+      }),
     );
   }
 
@@ -149,10 +153,11 @@ export function analyze(ctx) {
         category: 'bloat',
         severity: 'LOW',
         title: `Large notebook ${b.rel} (${fmtKB(b.size)})`,
-        detail: 'Notebook over 300KB. Split exploratory work from the narrative, or push the data out and keep the notebook as a thin driver.',
+        detail:
+          'Notebook over 300KB. Split exploratory work from the narrative, or push the data out and keep the notebook as a thin driver.',
         files: [b.rel],
         lang: 'notebook',
-      })
+      }),
     );
   }
 

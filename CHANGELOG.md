@@ -6,7 +6,29 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-Nothing yet.
+## [0.1.5] - 2026-10-24
+
+### Added
+
+- Human-readable terminal output is now the default CLI mode, with severity
+  grouping, clean scan summaries, and TTY-aware ANSI colors.
+- `--color` and `--no-color` flags for controlling terminal colors.
+- High-confidence detection for explicit not-implemented errors and empty
+  error handlers.
+- npm packaging metadata, a `flamerjs` command alias, and automated publishing
+  to npm and GitHub Packages on version tags.
+
+### Fixed
+
+- README and CI test-count checks now follow the current TypeScript test suite.
+- CLI, contributor, and agent documentation now matches the `src/` and `dist/`
+  project layout.
+
+### Removed
+
+- Bun as a project development dependency and lockfile.
+- JSON as the default interactive output mode; JSON remains available with
+  `--format json`.
 
 ## [0.1.0] - 2026-10-02
 
@@ -55,5 +77,6 @@ Measured on a 3.0 GB monorepo of 98,161 files, 71,150 of them source:
 - `poison` is a separate project. Flamer does not import it, and the handoff is
   a runtime capability check in `SKILL.md` rather than a code dependency.
 
-[Unreleased]: https://github.com/OWNER/flamer/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/dummy3ye/flamer/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/dummy3ye/flamer/releases/tag/v0.1.5
 [0.1.0]: https://github.com/OWNER/flamer/releases/tag/v0.1.0

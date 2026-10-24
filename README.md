@@ -1,203 +1,189 @@
-# flamer
+# Flamer
 
-A language-agnostic code health auditor. Walks a repository once, runs every
-registered analyzer, and prints a JSON report of what's wrong with it.
+**A fast sanity checker for AI-assisted codebases.**
 
-Works on any repo layout (single package, monorepo, or polyglot) and on 25
-languages across 70 file extensions. Zero dependencies; Node's standard library
-only.
+[![CI](https://github.com/dummy3ye/flamer/actions/workflows/ci.yml/badge.svg)](https://github.com/dummy3ye/flamer/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/flamerjs)](https://www.npmjs.com/package/flamerjs)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-```
-flamer/
-├── flamer.mjs          entry point: args, orchestration, output
-├── lib/
-│   ├── registry.mjs    the 25 language profiles, start here to add one
-│   ├── detect.mjs      layout + ecosystem detection
-│   ├── scan.mjs        single-pass file scanner
-│   ├── util/           fs, git, findings helpers
-│   └── analyzers/      8 isolated check suites
-├── test/               173 tests (node --test)
-├── docs/SPEC.md        the report contract shared with poison
-├── SKILL.md            the roast persona that consumes the JSON
-├── CONTRIBUTING.md     how to add a language or a check
-└── CHANGELOG.md
-```
+Flamer scans a repository for the common mistakes that appear when software is
+assembled quickly with AI or other “vibe coding” workflows: unfinished
+implementation, broken project wiring, missing tests, inconsistent tooling,
+repository hygiene problems, and maintainability traps.
+
+It is designed to answer:
+
+> **What is obviously unfinished, disconnected, inconsistent, or likely to
+> break in this repository?**
+
+Flamer is **not a deep security scanner**. It includes a small credential check
+so accidentally committed keys are not ignored; injection, authentication,
+cryptography, infrastructure security, and supply-chain analysis belong in a
+dedicated security tool.
+
+## Why Flamer?
+
+AI-generated code can look complete while still containing:
+
+- placeholder implementations and empty error handlers;
+- routes, scripts, or configuration that do not connect;
+- tests that exist but provide little confidence;
+- duplicate, generated, oversized, or abandoned files;
+- dependency and runtime configuration that differs between environments.
+
+Flamer turns these signals into a prioritized, machine-readable report that
+can be used locally, in pull requests, or in CI.
+
+## Features
+
+- **Unfinished implementation:** explicit “not implemented” paths and empty
+  error handlers.
+- **Project health:** missing README, license, CI, environment templates,
+  editor configuration, and ecosystem scaffolding.
+- **Testing signals:** test presence and source-to-test balance by language.
+- **Dependency hygiene:** lockfiles, version constraints, and manifest checks.
+- **Repository hygiene:** conflict markers, work-item markers, missing
+  newlines, mixed line endings, generated/vendor bloat, and deep paths.
+- **Language-aware checks:** JavaScript/TypeScript, Python, Rust, Go, C/C++,
+  C#, Zig, SQL, notebooks, and additional language profiles.
+- **Stable JSON output:** suitable for CI annotations and other automation.
+- **Single-pass scanning:** files are walked once and content is read once.
 
 ## Requirements
 
-Node 18 or newer. No install step, no `package.json`, no dependencies.
+- Node.js 18 or newer
+- npm
 
-## Usage
+## Quick start
 
-```bash
-node flamer.mjs                 # analyze the current directory
-node flamer.mjs /path/to/repo   # analyze somewhere else
-```
-
-### Options
-
-| Flag | Purpose |
-|---|---|
-| *(positional path)* | repo to analyze; defaults to cwd |
-| `--package <name>`, `--scope <name>` | analyze one sub-project of a monorepo |
-| `--format summary` | human-readable summary to stderr instead of JSON |
-| `--out <file>` | also write the JSON report to a file |
-| `--fail-on <SEVERITY>` | exit 1 if any finding is at/above this severity |
-| `--no-git` | skip git history analysis (faster; for non-repos) |
-| `--no-lockfile-warning` | suppress the "no lockfile" suggestion |
-| `--ignore-dir <name>` | additionally skip a directory name (repeatable) |
-| `--max-files <n>` | stop walking after n files (default 60000) |
-| `--commit-limit <n>` | how many commits to inspect (default 1000) |
-| `--list-languages` | print the supported language table |
-| `--help` | full option list |
-
-**Exit codes:** `0` normal · `1` `--fail-on` tripped · `2` path not found
-
-## Supported languages
-
-JavaScript, TypeScript, Python, Rust, Go, C, C++, C#, Java/Kotlin/Scala,
-Terraform/HCL, Docker, SQL, Ruby, PHP, Shell, PowerShell, Haskell, Elixir, Lua,
-R, Solidity, Swift, Dart, Zig, and Jupyter notebooks.
+Run Flamer from a checkout:
 
 ```bash
-node flamer.mjs --list-languages   # full table with extensions
+npm ci
+npm run build
+node dist/cli.js .
 ```
 
-## What it checks
+After publishing, install the CLI globally:
 
-**Any language**: exposed credentials (redacted in the output), unresolved
-merge-conflict markers, adaptive file bloat, empty and stub files, work-item
-annotations in comments, overlong lines, mixed line endings, missing trailing
-newlines, excessive path depth, vendored or generated code in the tree, missing
-shebangs.
+```bash
+npm install --global flamerjs
+flamerjs .
+```
 
-**Per ecosystem**: dependency version drift across packages, missing
-build/test/lint/typecheck scripts, wildcard and loosely-pinned versions,
-lockfile presence, Rust `unwrap()` density, Go discarded errors, C# nullable
-settings, unpinned Python requirements, `SELECT *`, and missing lockfiles and
-version pins across the smaller ecosystems.
+During development, `npm run dev` watches and rebuilds `dist/cli.js`.
+The default output is a colorized terminal summary when run interactively.
+Use `--format json` for automation and machine-readable output.
 
-### What flamer does not check
+For a human-readable report:
 
-Deep security analysis belongs to the **poison** skill, which is a separate and
-independently installable scanner. Injection, weak cryptography, disabled TLS,
-insecure infrastructure as code, unsafe container and cluster configuration,
-and dependency supply chain risk are all poison's territory.
+```bash
+node dist/cli.js . --format summary
+```
 
-Flamer keeps a credential scanner on purpose: a leaked key is the one security
-finding a roast must never miss, and the detector is cheap and language
-agnostic. Everything deeper is delegated.
+Analyze another repository:
 
-Test coverage is computed **per language**, so a mostly-Terraform repo is not
-graded as though it were all application code.
+```bash
+node dist/cli.js /path/to/repository --format summary
+```
 
-## Output
+## CLI
 
-```jsonc
+```text
+node dist/cli.js [path] [options]
+```
+
+| Option                      | Description                                                                   |
+| --------------------------- | ----------------------------------------------------------------------------- |
+| `--package, --scope <name>` | Analyze only a named sub-project                                              |
+| `--path <dir>`              | Set the repository root; defaults to the current directory                    |
+| `--format <json\|summary>`  | Select JSON or human-readable output; summary is the default                  |
+| `--out <file>`              | Also write the JSON report to a file                                          |
+| `--fail-on <SEVERITY>`      | Exit with status 1 at or above `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, or `INFO` |
+| `--max-files <n>`           | Limit the number of files scanned                                             |
+| `--commit-limit <n>`        | Limit commits inspected by Git checks                                         |
+| `--no-git`                  | Skip Git analysis                                                             |
+| `--no-lockfile-warning`     | Suppress the missing-lockfile suggestion                                      |
+| `--ignore-dir <name>`       | Ignore an additional directory name; repeatable                               |
+| `--quiet`                   | Suppress the human summary                                                    |
+| `--color`                   | Force ANSI colors                                                             |
+| `--no-color`                | Disable ANSI colors                                                           |
+| `--list-languages`          | List recognized language profiles                                             |
+| `--help`                    | Show command help                                                             |
+
+Exit status `0` means the scan completed; findings may still exist. Status `1`
+means `--fail-on` was reached, and status `2` indicates invalid usage or a
+missing path.
+
+## Example report
+
+```json
 {
-  "version": 2,
   "project": {
-    "name": "myrepo",
-    "kind": ["node", "python"],
-    "layout": "monorepo",
-    "languages": [{ "id": "typescript", "label": "TypeScript" }],
-    "dominantLanguage": "typescript",
-    "packages": ["root", "api", "web"],
-    "totalFiles": 1234,
-    "totalSourceFiles": 980,
-    "totalLines": 45120
+    "name": "example-app",
+    "kind": ["node"],
+    "layout": "single"
   },
   "findings": [
     {
-      "category": "secrets",      // security|deps|testing|bloat|hygiene|secrets|
-                                  // markers|vcs|config|build|script|structure|git|error
-      "severity": "CRITICAL",     // CRITICAL|HIGH|MEDIUM|LOW|INFO
-      "title": "Possible AWS access key id committed to the repository",
-      "detail": "Found in 2 file(s). Values are redacted in this report.",
-      "files": ["src/app.ts"],
-      "count": 2,
-      "lang": "typescript"
+      "category": "unfinished",
+      "severity": "HIGH",
+      "title": "2 source file(s) contain unfinished implementation",
+      "detail": "Not-implemented errors and empty error handlers were detected.",
+      "files": ["src/api.ts", "src/jobs.ts"],
+      "count": 2
     }
-  ],
-  "metadata": {
-    "durationSeconds": 0.9,
-    "truncated": false,
-    "severities": { "CRITICAL": 2, "HIGH": 5, "LOW": 11 },
-    "worst": "CRITICAL",
-    "analyzers": [{ "id": "universal", "ms": 30, "findings": 12, "error": null }]
-  }
+  ]
 }
 ```
 
-Findings arrive sorted worst-first. If `metadata.analyzers[*].error` is
-non-null, that analyzer crashed and its area should be treated as unknown
-rather than clean.
+Findings are sorted by severity. Credential values are always redacted.
 
-Credential values are **always redacted**. The analyzer will not echo a secret
-into its own output.
-
-## In CI
+## Development
 
 ```bash
-node flamer.mjs . --fail-on CRITICAL   # fail the build on anything critical
-node flamer.mjs . --out report.json    # keep the full report as an artifact
+npm ci
+npm run dev             # rebuild on source changes
+npm test                # run the test suite
+npm run lint
+npm run format:check
+npm run build
 ```
 
-## Relationship to poison
+The project uses Node.js and npm as its supported development toolchain.
+`package-lock.json` is the canonical dependency lockfile.
+The current test suite contains **175 tests**.
 
-`poison` is a separate skill and a separate project. It does not import
-flamer, and flamer does not import poison.
+## How it works
 
-Flamer's `SKILL.md` tells the agent to look for an available skill with the ID
-`poison` before roasting. If it is installed, flamer loads it and uses its
-report as the security section. If it is not, flamer says security coverage is
-limited to leaked credentials. That check is a runtime capability lookup, so
-both skills stay independently distributable.
+1. Detect the repository layout, languages, and ecosystems.
+2. Walk the tree once and collect file metadata and content-derived signals.
+3. Run isolated analyzers against the collected records.
+4. Sort findings and emit JSON or a concise summary.
 
-## Extending it
+Analyzers are intentionally factual and conservative. A finding should identify
+something actionable rather than merely express a preference.
 
-**Add a language:** append one entry to `LANGUAGES` in `lib/registry.mjs`. Give
-it extensions, a comment spec (used to parse annotations), bloat baselines, and
-test-file patterns. That is usually all that is needed for the universal checks
-to start working on it.
+## Scope and non-goals
 
-**Add a check:** write a module in `lib/analyzers/` exporting
-`(ctx) => Finding[]`, then add it to the `ANALYZERS` array in
-`lib/analyzers/index.mjs`. Analyzers run in isolation: if one throws, the rest
-still complete and the failure is reported in the output.
+Flamer focuses on **codebase completeness and engineering health**, not
+penetration testing. It does not attempt to prove that an application is
+secure, correct, performant, or production-ready. Static signals always need
+human review, especially when a project uses deliberate stubs, generated code,
+or unusual architecture.
 
-`ctx` carries the walked file records, the detected profile, the git-tracked
-path set, and CLI options. No analyzer re-reads files: the tree is walked once
-and content-derived metrics are computed during that single pass.
+## Contributing
 
-## Performance
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and
+guidelines for adding analyzers, language profiles, and tests.
 
-One tree walk, one read per file, contents never retained. Measured on a 3.0 GB
-monorepo of 98,161 files, 71,150 of them source, spanning Go, Node, Python,
-Terraform and Docker: **2.1 seconds**, 52 findings.
+When adding a check:
 
-The cost is content, not syscalls. The tree walk is 152ms and git is 44ms; the
-rest is reading 223 MB and counting lines. Two things dominate and both are
-addressed in `lib/scan.mjs`:
-
-- Newlines are found with `indexOf` rather than a per-character loop. Measured
-  3.7x faster on a 525 MB corpus. `split` was slower than both while also
-  allocating an array of every line.
-- The secret scanner gates 13 of its 14 patterns behind a literal substring
-  test, so the regex engine never runs on a file that cannot contain that shape
-  of credential. The assignment pattern is deliberately left ungated: its names
-  match case insensitively, and an incomplete gate would silently drop a rule.
-
-`--max-files` bounds the walk on very large repositories, and
-`metadata.truncated` tells you when the cap was hit.
-
-## Tests
-
-```bash
-node --test                    # all 173
-node --test lib/scan.test.mjs  # one file
-```
+1. Prefer a high-confidence signal with a concrete fix.
+2. Add a focused regression test.
+3. Keep false positives low and explain unavoidable uncertainty.
+4. Update the README when user-visible behavior changes.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+This project is licensed under the [MIT License](LICENSE).

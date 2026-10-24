@@ -5,8 +5,8 @@
  * drift across packages, missing scripts, tsconfig) and extends them.
  */
 import { join } from 'path';
-import { finding } from '../util/findings.mjs';
-import { readJSON, existsSync, filesIn } from '../util/fs.mjs';
+import { finding } from '../util/findings.js';
+import { readJSON, existsSync, filesIn } from '../util/fs.js';
 
 /** Node script names worth flagging when missing. */
 const SCRIPT_CHECKS = [
@@ -27,19 +27,21 @@ const FIELDS = [
 
 const DEP_TYPES = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'];
 
-/** Compare two loose semver ranges for exact equality only (no semver dep). */
-function rangesDiffer(a, b) {
-  return String(a).trim() !== String(b).trim();
-}
-
 function collectManifests(ctx) {
   const manifests = [];
   for (const scope of ctx.profile.scopes) {
-    const pkgPath = scope.isRoot ? join(ctx.root, 'package.json') : join(ctx.root, scope.path, 'package.json');
+    const pkgPath = scope.isRoot
+      ? join(ctx.root, 'package.json')
+      : join(ctx.root, scope.path, 'package.json');
     if (!existsSync(pkgPath)) continue;
     const pkg = readJSON(pkgPath);
     if (!pkg) {
-      manifests.push({ scope, pkg: null, relPath: scope.isRoot ? 'package.json' : `${scope.path}/package.json`, invalid: true });
+      manifests.push({
+        scope,
+        pkg: null,
+        relPath: scope.isRoot ? 'package.json' : `${scope.path}/package.json`,
+        invalid: true,
+      });
       continue;
     }
     manifests.push({
@@ -65,7 +67,7 @@ export function analyze(ctx) {
         title: `Invalid JSON in ${m.relPath}`,
         detail: 'The manifest could not be parsed. This will break installs and most tooling.',
         files: [m.relPath],
-      })
+      }),
     );
   }
   const valid = manifests.filter((m) => !m.invalid);
@@ -91,9 +93,11 @@ export function analyze(ctx) {
           category: 'deps',
           severity: 'CRITICAL',
           title: `Dependency "${dep}" has ${unique.length} different version ranges across packages`,
-          detail: [...byPkg.entries()].map(([pkg, v]) => `${pkg}: ${v.range} (${v.type})`).join(', ') + '. Pin one version and use workspace protocol / overrides.',
+          detail:
+            [...byPkg.entries()].map(([pkg, v]) => `${pkg}: ${v.range} (${v.type})`).join(', ') +
+            '. Pin one version and use workspace protocol / overrides.',
           count: byPkg.size,
-        })
+        }),
       );
     }
   }
@@ -107,7 +111,10 @@ export function analyze(ctx) {
       // Only require build/test for packages that actually contain source.
       const hasSource = m.scope.isRoot
         ? ctx.sourceFiles.some((f) => ['javascript', 'typescript'].includes(f.lang))
-        : ctx.sourceFiles.some((f) => f.rel.startsWith(`${m.scope.path}/`) && ['javascript', 'typescript'].includes(f.lang));
+        : ctx.sourceFiles.some(
+            (f) =>
+              f.rel.startsWith(`${m.scope.path}/`) && ['javascript', 'typescript'].includes(f.lang),
+          );
       if (!present && hasSource) {
         out.push(
           finding({
@@ -116,7 +123,7 @@ export function analyze(ctx) {
             title: `Package "${name}" has no "${check.name}" script`,
             detail: `No ${check.name} script in ${m.relPath}.${check.alt?.length ? ` (also checked: ${check.alt.join(', ')})` : ''}`,
             files: [m.relPath],
-          })
+          }),
         );
       }
     }
@@ -130,13 +137,17 @@ export function analyze(ctx) {
             title: `Package "${name}" ${f.msg}`,
             detail: `${m.relPath} has no "${f.key}" field.`,
             files: [m.relPath],
-          })
+          }),
         );
       }
     }
 
     // Version pinning: caret/tilde on runtime deps is a reproducibility risk.
-    const unpinned = Object.entries(m.pkg.dependencies || {}).filter(([, r]) => /^[~^*]|\|\||\bx\b|\*$/i.test(String(r)) && !/^(npm|file|link|workspace|git|http)/.test(String(r)));
+    const unpinned = Object.entries(m.pkg.dependencies || {}).filter(
+      ([, r]) =>
+        /^[~^*]|\|\||\bx\b|\*$/i.test(String(r)) &&
+        !/^(npm|file|link|workspace|git|http)/.test(String(r)),
+    );
     if (unpinned.length > 0) {
       out.push(
         finding({
@@ -146,20 +157,23 @@ export function analyze(ctx) {
           detail: unpinned.map(([d, r]) => `${d}@${r}`).join(', '),
           files: [m.relPath],
           count: unpinned.length,
-        })
+        }),
       );
     }
 
-    const wildcards = Object.entries(m.pkg.dependencies || {}).filter(([, r]) => String(r).trim() === '*' || String(r).trim() === '');
+    const wildcards = Object.entries(m.pkg.dependencies || {}).filter(
+      ([, r]) => String(r).trim() === '*' || String(r).trim() === '',
+    );
     if (wildcards.length > 0) {
       out.push(
         finding({
           category: 'deps',
           severity: 'HIGH',
           title: `Package "${name}" uses wildcard version(s) in dependencies`,
-          detail: wildcards.map(([d]) => d).join(', ') + '. Wildcards make builds non-reproducible.',
+          detail:
+            wildcards.map(([d]) => d).join(', ') + '. Wildcards make builds non-reproducible.',
           files: [m.relPath],
-        })
+        }),
       );
     }
   }
@@ -167,7 +181,9 @@ export function analyze(ctx) {
   const rootPkg = valid.find((m) => m.scope.isRoot);
   if (rootPkg) {
     const hasTsconfig = existsSync(join(ctx.root, 'tsconfig.json'));
-    const declaresTs = Boolean(rootPkg.pkg.devDependencies?.typescript || rootPkg.pkg.dependencies?.typescript);
+    const declaresTs = Boolean(
+      rootPkg.pkg.devDependencies?.typescript || rootPkg.pkg.dependencies?.typescript,
+    );
     const usesTsExt = ctx.sourceFiles.some((f) => f.lang === 'typescript');
     if (usesTsExt && !declaresTs) {
       out.push(
@@ -175,9 +191,10 @@ export function analyze(ctx) {
           category: 'deps',
           severity: 'HIGH',
           title: 'TypeScript sources present but "typescript" is not a declared dependency',
-          detail: 'No typescript in dependencies/devDependencies. Editor and CI type-checking will silently do nothing.',
+          detail:
+            'No typescript in dependencies/devDependencies. Editor and CI type-checking will silently do nothing.',
           files: ['package.json'],
-        })
+        }),
       );
     }
     if (!hasTsconfig && usesTsExt) {
@@ -186,20 +203,31 @@ export function analyze(ctx) {
           category: 'config',
           severity: 'HIGH',
           title: 'TypeScript sources but no tsconfig.json',
-          detail: 'Without a tsconfig, there is no configured target, module resolution, or strictness.',
-        })
+          detail:
+            'Without a tsconfig, there is no configured target, module resolution, or strictness.',
+        }),
       );
     }
 
-    const lockPresent = filesIn(ctx.root).some((f) => ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lockb', 'bun.lock', 'npm-shrinkwrap.json'].includes(f));
+    const lockPresent = filesIn(ctx.root).some((f) =>
+      [
+        'package-lock.json',
+        'yarn.lock',
+        'pnpm-lock.yaml',
+        'bun.lockb',
+        'bun.lock',
+        'npm-shrinkwrap.json',
+      ].includes(f),
+    );
     if (!lockPresent && !ctx.options.noLockfileWarning) {
       out.push(
         finding({
           category: 'deps',
           severity: 'MEDIUM',
           title: 'No JavaScript lockfile at the repository root',
-          detail: 'No package-lock.json / yarn.lock / pnpm-lock.yaml / bun.lock. Dependency resolution is not reproducible.',
-        })
+          detail:
+            'No package-lock.json / yarn.lock / pnpm-lock.yaml / bun.lock. Dependency resolution is not reproducible.',
+        }),
       );
     }
 
@@ -211,7 +239,7 @@ export function analyze(ctx) {
           title: 'Root package.json has no "engines.node" constraint',
           detail: 'Node version is unpinned, so local and CI runtimes can drift silently.',
           files: ['package.json'],
-        })
+        }),
       );
     }
   }
@@ -221,16 +249,19 @@ export function analyze(ctx) {
     const raw = readJSON(join(ctx.root, tsc.rel));
     if (!raw) continue;
     const compiler = raw.compilerOptions || {};
-    const strict = compiler.strict === true || (compiler.strictNullChecks === true && compiler.noImplicitAny === true);
+    const strict =
+      compiler.strict === true ||
+      (compiler.strictNullChecks === true && compiler.noImplicitAny === true);
     if (!strict) {
       out.push(
         finding({
           category: 'config',
           severity: 'MEDIUM',
           title: `${tsc.rel} does not enable TypeScript strict mode`,
-          detail: 'Without "strict": true, null/undefined and implicit-any bugs pass the compiler silently.',
+          detail:
+            'Without "strict": true, null/undefined and implicit-any bugs pass the compiler silently.',
           files: [tsc.rel],
-        })
+        }),
       );
     }
   }

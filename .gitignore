@@ -1,4 +1,5 @@
 node_modules/
+dist/
 *.log
 .DS_Store
 .env
@@ -6,3 +7,4 @@ node_modules/
 report.json
 *.cpuprofile
 coverage/
+.eslintcache

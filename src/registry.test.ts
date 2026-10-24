@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
 
 import {
@@ -8,7 +8,7 @@ import {
   languageById,
   allExtensions,
   FILENAME_MAP,
-} from './registry.mjs';
+} from './registry.js';
 
 test('registry: every language entry is well formed', () => {
   for (const l of LANGUAGES) {
@@ -42,20 +42,27 @@ test('registry: no extension is claimed by two languages', () => {
   const seen = new Map();
   for (const l of LANGUAGES) {
     for (const ext of l.exts) {
-      assert.equal(seen.has(ext), false, `extension ${ext} claimed by both ${seen.get(ext)} and ${l.id}`);
+      assert.equal(
+        seen.has(ext),
+        false,
+        `extension ${ext} claimed by both ${seen.get(ext)} and ${l.id}`,
+      );
       seen.set(ext, l.id);
     }
   }
 });
 
 test('registry: EXT_MAP and FILENAME_MAP agree with the language table', () => {
-  for (const [ext, id] of EXT_MAP) assert.ok(languageById(id), `${ext} maps to unknown language ${id}`);
-  for (const [name, id] of FILENAME_MAP) assert.ok(languageById(id), `${name} maps to unknown language ${id}`);
+  for (const [ext, id] of EXT_MAP)
+    assert.ok(languageById(id), `${ext} maps to unknown language ${id}`);
+  for (const [name, id] of FILENAME_MAP)
+    assert.ok(languageById(id), `${name} maps to unknown language ${id}`);
 });
 
 test('registry: every test pattern is a real expression', () => {
   for (const l of LANGUAGES) {
-    for (const re of l.tests) assert.ok(re instanceof RegExp, `${l.id}: test pattern is not a RegExp`);
+    for (const re of l.tests)
+      assert.ok(re instanceof RegExp, `${l.id}: test pattern is not a RegExp`);
   }
 });
 
@@ -180,9 +187,31 @@ test('registry: executable languages all declare test patterns', () => {
 test('registry: covers the languages the skill advertises', () => {
   // These are the ecosystems named in SKILL.md; dropping one is a doc bug.
   for (const id of [
-    'javascript', 'typescript', 'python', 'rust', 'go', 'c', 'cpp', 'csharp',
-    'java', 'ruby', 'php', 'shell', 'powershell', 'sql', 'terraform', 'docker',
-    'notebook', 'swift', 'dart', 'haskell', 'elixir', 'lua', 'r', 'solidity', 'zig',
+    'javascript',
+    'typescript',
+    'python',
+    'rust',
+    'go',
+    'c',
+    'cpp',
+    'csharp',
+    'java',
+    'ruby',
+    'php',
+    'shell',
+    'powershell',
+    'sql',
+    'terraform',
+    'docker',
+    'notebook',
+    'swift',
+    'dart',
+    'haskell',
+    'elixir',
+    'lua',
+    'r',
+    'solidity',
+    'zig',
   ]) {
     assert.ok(languageById(id), `advertised language "${id}" is missing from the registry`);
   }

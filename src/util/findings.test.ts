@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
 
 import {
@@ -9,7 +9,7 @@ import {
   worstSeverity,
   SEVERITIES,
   CATEGORIES,
-} from './findings.mjs';
+} from './findings.js';
 
 test('finding: builds a well-formed finding', () => {
   const f = finding({ category: 'secrets', severity: 'CRITICAL', title: 'Leak', detail: 'why' });
@@ -82,23 +82,30 @@ test('sortFindings: orders by severity, then category, then title', () => {
     finding({ category: 'hygiene', severity: 'HIGH', title: 'c' }),
   ];
   const out = sortFindings(input);
-  assert.deepEqual(out.map((f) => `${f.severity}:${f.category}`), [
-    'CRITICAL:deps',
-    'CRITICAL:git',
-    'HIGH:hygiene',
-    'LOW:bloat',
-  ]);
+  assert.deepEqual(
+    out.map((f) => `${f.severity}:${f.category}`),
+    ['CRITICAL:deps', 'CRITICAL:git', 'HIGH:hygiene', 'LOW:bloat'],
+  );
 });
 
 test('sortFindings: does not mutate its input', () => {
-  const input = [finding({ severity: 'LOW', title: 'a' }), finding({ severity: 'CRITICAL', title: 'b' })];
+  const input = [
+    finding({ severity: 'LOW', title: 'a' }),
+    finding({ severity: 'CRITICAL', title: 'b' }),
+  ];
   const before = input.map((f) => f.severity);
   sortFindings(input);
-  assert.deepEqual(input.map((f) => f.severity), before);
+  assert.deepEqual(
+    input.map((f) => f.severity),
+    before,
+  );
 });
 
 test('severityTally: counts every level, including zeroes', () => {
-  const tally = severityTally([finding({ severity: 'LOW', title: 'a' }), finding({ severity: 'LOW', title: 'b' })]);
+  const tally = severityTally([
+    finding({ severity: 'LOW', title: 'a' }),
+    finding({ severity: 'LOW', title: 'b' }),
+  ]);
   assert.equal(tally.LOW, 2);
   assert.equal(tally.CRITICAL, 0);
   for (const s of SEVERITIES) assert.ok(s in tally, `${s} should always be present`);
@@ -110,7 +117,11 @@ test('severityTally: an empty list yields all zeroes', () => {
 });
 
 test('worstSeverity: returns the highest severity present', () => {
-  const list = [finding({ severity: 'LOW', title: 'a' }), finding({ severity: 'CRITICAL', title: 'b' }), finding({ severity: 'HIGH', title: 'c' })];
+  const list = [
+    finding({ severity: 'LOW', title: 'a' }),
+    finding({ severity: 'CRITICAL', title: 'b' }),
+    finding({ severity: 'HIGH', title: 'c' }),
+  ];
   assert.equal(worstSeverity(list), 'CRITICAL');
 });
 

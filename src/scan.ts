@@ -6,8 +6,8 @@
  * secrets, merge conflicts) is extracted from that single read. File contents
  * are never retained, so memory stays flat no matter how large the repo is.
  */
-import { readText, looksBinary, readHead, isGeneratedName, LOCKFILES } from './util/fs.mjs';
-import { matchLang } from './registry.mjs';
+import { readText, looksBinary, readHead, isGeneratedName, LOCKFILES } from './util/fs.js';
+import { matchLang } from './registry.js';
 
 /** Files larger than this are not read at all (metadata only). */
 const MAX_CONTENT_BYTES = 2 * 1024 * 1024;
@@ -44,7 +44,7 @@ const SECRET_ASSIGNMENT_NAMES = [
 /** Matches `name = "value"` where the value looks like a real credential. */
 const SECRET_ASSIGNMENT_RE = new RegExp(
   '\\b(?:' + SECRET_ASSIGNMENT_NAMES.join('|') + ')\\b\\s*[:=]\\s*["\'`]([^"\'`\\s]{12,})["\'`]',
-  'gi'
+  'gi',
 );
 
 /**
@@ -62,28 +62,102 @@ const SECRET_ASSIGNMENT_RE = new RegExp(
  * and a missed casing is a silently dropped rule.
  */
 export const SECRET_PATTERNS = [
-  { kind: 'AWS access key id', re: /\b(A3T[A-Z0-9]|AKIA|ASIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ABIA|ACCA)[A-Z0-9]{16}\b/g, group: 0, prefilter: ['A3T', 'AKIA', 'ASIA', 'AGPA', 'AIDA', 'AROA', 'AIPA', 'ANPA', 'ANVA', 'ABIA', 'ACCA'] },
-  { kind: 'private key block', re: /-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY(?: BLOCK)?-----/g, group: 0, prefilter: ['-----BEGIN'] },
-  { kind: 'GitHub token', re: /\bgh[pousr]_[A-Za-z0-9]{36,255}\b/g, group: 0, prefilter: ['ghp_', 'gho_', 'ghu_', 'ghs_', 'ghr_'] },
+  {
+    kind: 'AWS access key id',
+    re: /\b(A3T[A-Z0-9]|AKIA|ASIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ABIA|ACCA)[A-Z0-9]{16}\b/g,
+    group: 0,
+    prefilter: [
+      'A3T',
+      'AKIA',
+      'ASIA',
+      'AGPA',
+      'AIDA',
+      'AROA',
+      'AIPA',
+      'ANPA',
+      'ANVA',
+      'ABIA',
+      'ACCA',
+    ],
+  },
+  {
+    kind: 'private key block',
+    re: /-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY(?: BLOCK)?-----/g,
+    group: 0,
+    prefilter: ['-----BEGIN'],
+  },
+  {
+    kind: 'GitHub token',
+    re: /\bgh[pousr]_[A-Za-z0-9]{36,255}\b/g,
+    group: 0,
+    prefilter: ['ghp_', 'gho_', 'ghu_', 'ghs_', 'ghr_'],
+  },
   { kind: 'Slack token', re: /\bxox[abposr]-[A-Za-z0-9-]{10,}\b/g, group: 0, prefilter: ['xox'] },
-  { kind: 'Stripe key', re: /\b[sr]k_(?:live|test)_[A-Za-z0-9]{20,}\b/g, group: 0, prefilter: ['_live_', '_test_'] },
+  {
+    kind: 'Stripe key',
+    re: /\b[sr]k_(?:live|test)_[A-Za-z0-9]{20,}\b/g,
+    group: 0,
+    prefilter: ['_live_', '_test_'],
+  },
   { kind: 'Google API key', re: /\bAIza[0-9A-Za-z_-]{35}\b/g, group: 0, prefilter: ['AIza'] },
-  { kind: 'OpenAI-style key', re: /\bsk-(?:proj-)?[A-Za-z0-9_-]{32,}\b/g, group: 0, prefilter: ['sk-'] },
-  { kind: 'Anthropic API key', re: /\bsk-ant-[A-Za-z0-9_-]{32,}\b/g, group: 0, prefilter: ['sk-ant-'] },
+  {
+    kind: 'OpenAI-style key',
+    re: /\bsk-(?:proj-)?[A-Za-z0-9_-]{32,}\b/g,
+    group: 0,
+    prefilter: ['sk-'],
+  },
+  {
+    kind: 'Anthropic API key',
+    re: /\bsk-ant-[A-Za-z0-9_-]{32,}\b/g,
+    group: 0,
+    prefilter: ['sk-ant-'],
+  },
   { kind: 'npm token', re: /\bnpm_[A-Za-z0-9]{36}\b/g, group: 0, prefilter: ['npm_'] },
   { kind: 'PyPI token', re: /\bpypi-[A-Za-z0-9_-]{16,}\b/g, group: 0, prefilter: ['pypi-'] },
-  { kind: 'JSON Web Token', re: /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g, group: 0, prefilter: ['eyJ'] },
-  { kind: 'connection string with password', re: /\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp|mssql):\/\/[^\s:@/]+:[^\s:@/]{3,}@/g, group: 0, prefilter: ['://'] },
+  {
+    kind: 'JSON Web Token',
+    re: /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g,
+    group: 0,
+    prefilter: ['eyJ'],
+  },
+  {
+    kind: 'connection string with password',
+    re: /\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp|mssql):\/\/[^\s:@/]+:[^\s:@/]{3,}@/g,
+    group: 0,
+    prefilter: ['://'],
+  },
   { kind: 'hardcoded secret assignment', re: SECRET_ASSIGNMENT_RE, group: 1 },
-  { kind: 'bearer token', re: /\bBearer\s+[A-Za-z0-9._~+/-]{24,}={0,2}\b/g, group: 0, prefilter: ['Bearer'] },
+  {
+    kind: 'bearer token',
+    re: /\bBearer\s+[A-Za-z0-9._~+/-]{24,}={0,2}\b/g,
+    group: 0,
+    prefilter: ['Bearer'],
+  },
 ];
 
 /** Common placeholder values that are definitely not real secrets. */
 const PLACEHOLDERS = new Set([
-  'your_api_key', 'yourapikey', 'api_key_here', 'changeme', 'change_me', 'replace_me',
-  'xxxxxxxxxxxx', 'your-token-here', 'placeholder', 'example', 'dummy', 'todo',
-  'insert_key_here', 'your-secret-here', 'none', 'null', 'test', 'fake',
-  'your_password', 'password_here', 'not_a_real_key',
+  'your_api_key',
+  'yourapikey',
+  'api_key_here',
+  'changeme',
+  'change_me',
+  'replace_me',
+  'xxxxxxxxxxxx',
+  'your-token-here',
+  'placeholder',
+  'example',
+  'dummy',
+  'todo',
+  'insert_key_here',
+  'your-secret-here',
+  'none',
+  'null',
+  'test',
+  'fake',
+  'your_password',
+  'password_here',
+  'not_a_real_key',
 ]);
 
 /** Paths where a credential match is expected and not a leak. */
@@ -105,6 +179,17 @@ const SECRET_EXEMPT_PATHS = [
 const CONFLICT_RE = /^(<{7}|={7}|>{7})(?: |$)/;
 
 const SHEBANG_RE = /^#!\s*\/[^\n]*/;
+
+const UNFINISHED_PATTERNS = [
+  {
+    kind: 'not-implemented error',
+    re: /\b(?:throw\s+new\s+Error|raise\s+NotImplementedError)\s*\(\s*["'`](?:not implemented|not implemented yet|todo|coming soon)[^"'`]*["'`]\s*\)/i,
+  },
+  {
+    kind: 'empty error handler',
+    re: /\bcatch\s*(?:\([^)]*\))?\s*\{\s*\}/,
+  },
+];
 
 /** True when a path is exempt from secret reporting. */
 function isSecretExempt(rel) {
@@ -170,7 +255,7 @@ export function extractMarkers(text, spec) {
     }
 
     if (inBlock !== -1) {
-      const [open, close] = spec.block[inBlock];
+      const [, close] = spec.block[inBlock];
       if (text.startsWith(close, i)) {
         emit(commentText, blockStartLine);
         commentText = '';
@@ -287,6 +372,31 @@ export function extractSecrets(text, starts) {
   return out;
 }
 
+/** Find high-confidence signs of unfinished implementation. */
+export function extractUnfinished(text) {
+  const out = [];
+  const lines = text.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if (
+      !trimmed ||
+      trimmed.startsWith('//') ||
+      trimmed.startsWith('#') ||
+      trimmed.startsWith('--')
+    ) {
+      continue;
+    }
+    for (const { kind, re } of UNFINISHED_PATTERNS) {
+      if (re.test(line)) {
+        out.push({ kind, line: i + 1 });
+        break;
+      }
+    }
+  }
+  return out;
+}
+
 /**
  * Scan one file record in place, adding the metrics taken from its content.
  * Returns the same record.
@@ -302,7 +412,9 @@ export function scanFile(rec) {
 
   rec.isGenerated = isGeneratedName(rec.name);
   rec.isLockfile = LOCKFILES.has(rec.name);
-  rec.isTest = lang ? lang.tests.some((re) => re.test(rec.rel)) : /(^|\/)(test|tests|spec|specs|__tests__)(\/|$)/i.test(rec.rel);
+  rec.isTest = lang
+    ? lang.tests.some((re) => re.test(rec.rel))
+    : /(^|\/)(test|tests|spec|specs|__tests__)(\/|$)/i.test(rec.rel);
 
   rec.isBinary = false;
   rec.lines = 0;
@@ -313,6 +425,7 @@ export function scanFile(rec) {
   rec.hasShebang = false;
   rec.markers = [];
   rec.secrets = [];
+  rec.unfinished = [];
   rec.conflictLines = [];
 
   if (rec.size === 0) {
@@ -371,6 +484,8 @@ export function scanFile(rec) {
       if (CONFLICT_RE.test(linesArr[i])) rec.conflictLines.push(i + 1);
     }
   }
+
+  rec.unfinished = extractUnfinished(text).slice(0, 20);
 
   // Markers: only pay the cost of the state machine when a keyword is present.
   const hasMarkerKeyword = MARKER_KEYWORDS.some((k) => text.includes(k));

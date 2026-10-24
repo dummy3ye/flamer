@@ -3,8 +3,8 @@
  *
  * Consumes the FileRecords produced by lib/scan.mjs. Never reads a file twice.
  */
-import { finding } from '../util/findings.mjs';
-import { languageById } from '../registry.mjs';
+import { finding } from '../util/findings.js';
+import { languageById } from '../registry.js';
 
 function percentile(sorted, p) {
   if (sorted.length === 0) return 0;
@@ -54,9 +54,7 @@ export function analyzeBloat(ctx) {
     // for legitimately large codebases.
     const adaptive = Math.max(soft, Math.round(med * 3));
 
-    const offenders = group
-      .filter((f) => f.lines > adaptive)
-      .sort((a, b) => b.lines - a.lines);
+    const offenders = group.filter((f) => f.lines > adaptive).sort((a, b) => b.lines - a.lines);
 
     // Systemic bloat first, and *before* the early return below. When every
     // file is large there are no outliers, so gating this on `offenders`
@@ -72,7 +70,7 @@ export function analyzeBloat(ctx) {
             `rather than a few outliers. Median is ${fmt(med)} across ${fmt(group.length)} file(s). ` +
             `Consider a module-boundary pass.`,
           lang: langId,
-        })
+        }),
       );
     }
 
@@ -93,7 +91,7 @@ export function analyzeBloat(ctx) {
           files: severe.slice(0, 10).map((f) => f.rel),
           count: severe.length,
           lang: langId,
-        })
+        }),
       );
     }
 
@@ -111,7 +109,7 @@ export function analyzeBloat(ctx) {
           files: offenders.slice(0, 10).map((f) => f.rel),
           count: offenders.length,
           lang: langId,
-        })
+        }),
       );
     }
   }
@@ -128,11 +126,9 @@ export function analyzeEmpty(ctx) {
   // deliberately tiny modules is neatly factored, not abandoned, so only flag
   // nearly empty files when the same language also contains substantial ones.
   const structured = ctx.structuredFiles;
-  const langHasSubstantial = new Set(
-    structured.filter((f) => f.lines > 20).map((f) => f.lang)
-  );
+  const langHasSubstantial = new Set(structured.filter((f) => f.lines > 20).map((f) => f.lang));
   const stubs = structured.filter(
-    (f) => f.size > 0 && f.lines <= 2 && langHasSubstantial.has(f.lang)
+    (f) => f.size > 0 && f.lines <= 2 && langHasSubstantial.has(f.lang),
   );
 
   if (empties.length > 0) {
@@ -141,10 +137,11 @@ export function analyzeEmpty(ctx) {
         category: 'bloat',
         severity: empties.length > 5 ? 'MEDIUM' : 'LOW',
         title: `${empties.length} completely empty source file(s)`,
-        detail: 'Zero-byte source files. Either a placeholder that was committed by accident, or a file whose contents were lost.',
+        detail:
+          'Zero-byte source files. Either a placeholder that was committed by accident, or a file whose contents were lost.',
         files: empties.slice(0, 10).map((f) => f.rel),
         count: empties.length,
-      })
+      }),
     );
   }
   if (stubs.length > 0) {
@@ -153,10 +150,11 @@ export function analyzeEmpty(ctx) {
         category: 'bloat',
         severity: 'LOW',
         title: `${stubs.length} stub source file(s) of 2 lines or fewer`,
-        detail: 'Files with almost no content. Verify these are intentional scaffolding and not abandoned work.',
+        detail:
+          'Files with almost no content. Verify these are intentional scaffolding and not abandoned work.',
         files: stubs.slice(0, 10).map((f) => f.rel),
         count: stubs.length,
-      })
+      }),
     );
   }
   return out;
@@ -200,7 +198,7 @@ export function analyzeMarkers(ctx) {
           `A ${type} is a promise to future-you with no due date.`,
         files: [...entry.files].slice(0, 10),
         count: entry.count,
-      })
+      }),
     );
   }
 
@@ -210,9 +208,10 @@ export function analyzeMarkers(ctx) {
         category: 'markers',
         severity: 'HIGH',
         title: `${fmt(total)} unresolved markers repo-wide`,
-        detail: 'Marker count is high enough to be a tracking-system failure rather than a set of individual notes.',
+        detail:
+          'Marker count is high enough to be a tracking-system failure rather than a set of individual notes.',
         count: total,
-      })
+      }),
     );
   }
   return out;
@@ -261,7 +260,7 @@ export function analyzeSecrets(ctx) {
           `Treat as compromised: rotate the credential, then purge it from history.`,
         files: [...e.files].slice(0, 10),
         count: e.files.size,
-      })
+      }),
     );
   }
   return out;
@@ -279,13 +278,51 @@ export function analyzeConflicts(ctx) {
       title: `Unresolved merge conflict markers in ${conflicted.length} file(s)`,
       detail:
         `Conflict markers are still present in the working tree. ` +
-        `Files: ${conflicted.slice(0, 8).map((f) => f.rel).join(', ')}.` +
+        `Files: ${conflicted
+          .slice(0, 8)
+          .map((f) => f.rel)
+          .join(', ')}.` +
         (conflicted.length > 8 ? ` (+${conflicted.length - 8} more)` : ''),
       files: conflicted.slice(0, 10).map((f) => f.rel),
       count: conflicted.length,
-    })
+    }),
   );
   return out;
+}
+
+/** Explicit placeholders and empty error handlers left in source code. */
+export function analyzeUnfinished(ctx) {
+  const unfinished = ctx.sourceFiles.filter(
+    (f) => !f.isTest && f.unfinished && f.unfinished.length > 0,
+  );
+  if (unfinished.length === 0) return [];
+
+  const notImplemented = unfinished.reduce(
+    (count, file) =>
+      count + file.unfinished.filter((item) => item.kind === 'not-implemented error').length,
+    0,
+  );
+  const emptyHandlers = unfinished.reduce(
+    (count, file) =>
+      count + file.unfinished.filter((item) => item.kind === 'empty error handler').length,
+    0,
+  );
+  const kinds = [];
+  if (notImplemented > 0) kinds.push(`${notImplemented} not-implemented error(s)`);
+  if (emptyHandlers > 0) kinds.push(`${emptyHandlers} empty error handler(s)`);
+
+  return [
+    finding({
+      category: 'unfinished',
+      severity: 'HIGH',
+      title: `${unfinished.length} source file(s) contain unfinished implementation`,
+      detail:
+        `${kinds.join(' and ')} detected. These paths either fail at runtime or silently discard errors; ` +
+        'replace the placeholder with working behavior or an explicit, documented fallback.',
+      files: unfinished.slice(0, 10).map((f) => f.rel),
+      count: unfinished.length,
+    }),
+  ];
 }
 
 /** Overlong lines, mixed line endings, missing trailing newlines. */
@@ -308,7 +345,7 @@ export function analyzeFormatting(ctx) {
             .join(', ')}.`,
         files: long.slice(0, 10).map((f) => f.rel),
         count: long.length,
-      })
+      }),
     );
   }
 
@@ -327,7 +364,7 @@ export function analyzeFormatting(ctx) {
             `A .gitattributes with * text=auto eol=lf removes the whole category of bug.`,
           files: crlf.slice(0, 8).map((f) => f.rel),
           count: crlf.length,
-        })
+        }),
       );
     }
   }
@@ -342,7 +379,7 @@ export function analyzeFormatting(ctx) {
         detail: 'POSIX convention: text files end with a newline. Causes noisy diffs.',
         files: noNl.slice(0, 10).map((f) => f.rel),
         count: noNl.length,
-      })
+      }),
     );
   }
   return out;
@@ -359,15 +396,21 @@ export function analyzeStructure(ctx) {
         category: 'structure',
         severity: 'LOW',
         title: `${deep.length} file(s) nested more than 8 directories deep`,
-        detail: `Deepest: ${deep.sort((a, b) => b.depth - a.depth).slice(0, 5).map((f) => `${f.rel} (depth ${f.depth})`).join(', ')}.`,
+        detail: `Deepest: ${deep
+          .sort((a, b) => b.depth - a.depth)
+          .slice(0, 5)
+          .map((f) => `${f.rel} (depth ${f.depth})`)
+          .join(', ')}.`,
         files: deep.slice(0, 8).map((f) => f.rel),
         count: deep.length,
-      })
+      }),
     );
   }
 
   const vendored = ctx.structuredFiles.filter(
-    (f) => f.isGenerated || /(^|\/)(vendor|third[_-]?party|extern|external|deps|generated)([\/_-]|$)/i.test(f.rel)
+    (f) =>
+      f.isGenerated ||
+      /(^|\/)(vendor|third[_-]?party|extern|external|deps|generated)([_/-]|$)/i.test(f.rel),
   );
   if (vendored.length > 20) {
     out.push(
@@ -380,7 +423,7 @@ export function analyzeStructure(ctx) {
           'language statistics, and review surface.',
         files: vendored.slice(0, 10).map((f) => f.rel),
         count: vendored.length,
-      })
+      }),
     );
   }
 
@@ -390,7 +433,9 @@ export function analyzeStructure(ctx) {
 /** Shell scripts without a shebang, plus executable permission sanity. */
 export function analyzeShebangs(ctx) {
   const out = [];
-  const scripts = ctx.sourceFiles.filter((f) => ['shell', 'python', 'ruby', 'perl'].includes(f.lang));
+  const scripts = ctx.sourceFiles.filter((f) =>
+    ['shell', 'python', 'ruby', 'perl'].includes(f.lang),
+  );
   const noShebang = scripts.filter((f) => !f.hasShebang && f.size > 0);
   if (noShebang.length > 0) {
     out.push(
@@ -400,10 +445,13 @@ export function analyzeShebangs(ctx) {
         title: `${noShebang.length} script file(s) with no shebang`,
         detail:
           `Scripts without an interpreter line depend on however they are invoked. ` +
-          `Files: ${noShebang.slice(0, 6).map((f) => f.rel).join(', ')}.`,
+          `Files: ${noShebang
+            .slice(0, 6)
+            .map((f) => f.rel)
+            .join(', ')}.`,
         files: noShebang.slice(0, 10).map((f) => f.rel),
         count: noShebang.length,
-      })
+      }),
     );
   }
   return out;
@@ -413,6 +461,7 @@ export function analyze(ctx) {
   return [
     ...analyzeSecrets(ctx),
     ...analyzeConflicts(ctx),
+    ...analyzeUnfinished(ctx),
     ...analyzeBloat(ctx),
     ...analyzeEmpty(ctx),
     ...analyzeMarkers(ctx),

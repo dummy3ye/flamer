@@ -4,9 +4,8 @@
  * These checks are intentionally conservative. They cover memory safety and
  * build config problems that other tooling does not already catch.
  */
-import { join } from 'path';
-import { finding } from '../util/findings.mjs';
-import { readText, filesIn } from '../util/fs.mjs';
+import { finding } from '../util/findings.js';
+import { readText, filesIn } from '../util/fs.js';
 
 const fmt = (n) => n.toLocaleString('en-US');
 
@@ -24,7 +23,7 @@ function rust(ctx) {
         title: 'Rust sources present but no Cargo.toml at the root',
         detail: 'These .rs files are not part of a Cargo build.',
         lang: 'rust',
-      })
+      }),
     );
   }
 
@@ -36,10 +35,11 @@ function rust(ctx) {
         category: 'deps',
         severity: 'MEDIUM',
         title: 'Cargo.lock not committed',
-        detail: 'For a binary crate, committing Cargo.lock pins reproducible builds. (Libraries may omit it.)',
+        detail:
+          'For a binary crate, committing Cargo.lock pins reproducible builds. (Libraries may omit it.)',
         files: ['Cargo.toml'],
         lang: 'rust',
-      })
+      }),
     );
   }
 
@@ -62,11 +62,15 @@ function rust(ctx) {
         title: `${fmt(unwrapCount)} unwrap()/expect() call(s) across ${unwrapFiles.length} Rust file(s)`,
         detail:
           'These panic on failure. Concentrated use in library code turns bad input into a process crash. ' +
-          unwrapFiles.sort((a, b) => b.n - a.n).slice(0, 5).map((f) => `${f.rel} (${f.n})`).join(', '),
+          unwrapFiles
+            .sort((a, b) => b.n - a.n)
+            .slice(0, 5)
+            .map((f) => `${f.rel} (${f.n})`)
+            .join(', '),
         files: unwrapFiles.slice(0, 6).map((f) => f.rel),
         count: unwrapCount,
         lang: 'rust',
-      })
+      }),
     );
   }
 
@@ -87,7 +91,7 @@ function go(ctx) {
         title: 'Go sources present but no go.mod',
         detail: 'Go requires go.mod for module resolution and reproducible builds.',
         lang: 'go',
-      })
+      }),
     );
   } else if (!filesIn(ctx.root).includes('go.sum')) {
     out.push(
@@ -98,7 +102,7 @@ function go(ctx) {
         detail: 'go.sum pins module checksums. Without it, dependency integrity is not verified.',
         files: ['go.mod'],
         lang: 'go',
-      })
+      }),
     );
   }
 
@@ -121,11 +125,14 @@ function go(ctx) {
         title: `${total} discarded error value(s) assigned to _ in Go`,
         detail:
           'Explicitly ignoring returned errors. Some is correct at boundaries, but volume like this usually hides real failures. ' +
-          ignored.slice(0, 5).map((f) => `${f.rel} (${f.n})`).join(', '),
+          ignored
+            .slice(0, 5)
+            .map((f) => `${f.rel} (${f.n})`)
+            .join(', '),
         files: ignored.slice(0, 6).map((f) => f.rel),
         count: total,
         lang: 'go',
-      })
+      }),
     );
   }
 
@@ -147,14 +154,15 @@ function dotnet(ctx) {
         title: 'C# sources present but no .csproj or .sln',
         detail: 'No project file found. dotnet build will not discover these sources.',
         lang: 'csharp',
-      })
+      }),
     );
   }
 
   const csprojNoNullable = [];
   for (const p of projects.filter((x) => /\.csproj$/.test(x.rel))) {
     const raw = readText(p.abs);
-    if (/<Nullable>/.test(raw) && /<Nullable>disable<\/Nullable>/.test(raw)) csprojNoNullable.push(p.rel);
+    if (/<Nullable>/.test(raw) && /<Nullable>disable<\/Nullable>/.test(raw))
+      csprojNoNullable.push(p.rel);
   }
   if (cs.length > 3 && csprojNoNullable.length > 0) {
     out.push(
@@ -165,7 +173,7 @@ function dotnet(ctx) {
         detail: `<Nullable>disable</Nullable> in ${csprojNoNullable.join(', ')}. NullReferenceException risks stay invisible to the compiler.`,
         files: csprojNoNullable,
         lang: 'csharp',
-      })
+      }),
     );
   }
 
@@ -177,7 +185,7 @@ function dotnet(ctx) {
         title: 'No global.json pinning the .NET SDK version',
         detail: 'Different machines/CI runners may build against different SDKs.',
         lang: 'csharp',
-      })
+      }),
     );
   }
 
@@ -196,7 +204,7 @@ function zig(ctx) {
         title: 'Zig sources present but no build.zig',
         detail: 'No build script. Zig projects are conventionally driven by build.zig.',
         lang: 'zig',
-      })
+      }),
     );
   }
   return out;

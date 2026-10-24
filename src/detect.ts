@@ -7,21 +7,48 @@
 import { join } from 'path';
 import { existsSync } from 'fs';
 
-import { filesIn, subdirs, isDir, LOCKFILES } from './util/fs.mjs';
-import { languageById } from './registry.mjs';
+import { filesIn, subdirs, isDir, LOCKFILES } from './util/fs.js';
+import { languageById } from './registry.js';
 
 /** Directories that commonly hold subprojects that are versioned separately. */
 const MONOREPO_DIRS = [
-  'packages', 'apps', 'services', 'libs', 'modules', 'crates',
-  'cmd', 'internal', 'projects', 'components', 'plugins', 'extensions', 'workers',
+  'packages',
+  'apps',
+  'services',
+  'libs',
+  'modules',
+  'crates',
+  'cmd',
+  'internal',
+  'projects',
+  'components',
+  'plugins',
+  'extensions',
+  'workers',
 ];
 
 /** Files that mark a root as an umbrella build orchestrator. */
 const WORKSPACE_MARKERS = [
-  'pnpm-workspace.yaml', 'lerna.json', 'nx.json', 'turbo.json', 'rush.json',
-  'go.work', 'Cargo.toml', 'package.json', 'pom.xml', 'settings.gradle',
-  'build.gradle', 'build.gradle.kts', 'pyproject.toml', 'mix.exs', 'flake.nix',
-  'stack.yaml', 'dune-project', 'melange.yaml', 'pubspec.yaml', 'Package.swift',
+  'pnpm-workspace.yaml',
+  'lerna.json',
+  'nx.json',
+  'turbo.json',
+  'rush.json',
+  'go.work',
+  'Cargo.toml',
+  'package.json',
+  'pom.xml',
+  'settings.gradle',
+  'build.gradle',
+  'build.gradle.kts',
+  'pyproject.toml',
+  'mix.exs',
+  'flake.nix',
+  'stack.yaml',
+  'dune-project',
+  'melange.yaml',
+  'pubspec.yaml',
+  'Package.swift',
 ];
 
 /**
@@ -37,10 +64,26 @@ const WORKSPACE_MARKERS = [
 
 /** Manifest basenames that indicate a subproject of its own. */
 const SCOPE_MANIFESTS = new Set([
-  'package.json', 'Cargo.toml', 'go.mod', 'pyproject.toml', 'setup.py',
-  'requirements.txt', 'Pipfile', 'composer.json', 'Gemfile', 'pom.xml',
-  'build.gradle', 'build.gradle.kts', 'mix.exs', 'pubspec.yaml', 'Package.swift',
-  'CMakeLists.txt', 'Makefile', 'deno.json', 'build.zig', 'Package.resolved',
+  'package.json',
+  'Cargo.toml',
+  'go.mod',
+  'pyproject.toml',
+  'setup.py',
+  'requirements.txt',
+  'Pipfile',
+  'composer.json',
+  'Gemfile',
+  'pom.xml',
+  'build.gradle',
+  'build.gradle.kts',
+  'mix.exs',
+  'pubspec.yaml',
+  'Package.swift',
+  'CMakeLists.txt',
+  'Makefile',
+  'deno.json',
+  'build.zig',
+  'Package.resolved',
 ]);
 
 /** True if a directory looks like a subproject of its own. */
@@ -56,7 +99,9 @@ function isScopeDir(abs) {
 
 function describeScope(name, relPath, abs) {
   const names = filesIn(abs);
-  const manifests = names.filter((n) => SCOPE_MANIFESTS.has(n) || /\.(csproj|sln|fsproj|vbproj)$/.test(n));
+  const manifests = names.filter(
+    (n) => SCOPE_MANIFESTS.has(n) || /\.(csproj|sln|fsproj|vbproj)$/.test(n),
+  );
   const lockfiles = names.filter((n) => LOCKFILES.has(n));
   return {
     name,
@@ -119,23 +164,35 @@ function langsFromManifest(name) {
   if (switchName === 'tsconfig.json') return ['typescript'];
   if (switchName === 'Cargo.toml') return ['rust'];
   if (switchName === 'go.mod' || switchName === 'go.work') return ['go'];
-  if (['pyproject.toml', 'setup.py', 'requirements.txt', 'Pipfile', 'setup.cfg'].includes(switchName)) return ['python'];
+  if (
+    ['pyproject.toml', 'setup.py', 'requirements.txt', 'Pipfile', 'setup.cfg'].includes(switchName)
+  )
+    return ['python'];
   if (['composer.json'].includes(switchName)) return ['php'];
   if (['Gemfile'].includes(switchName)) return ['ruby'];
-  if (['pom.xml', 'build.gradle', 'build.gradle.kts', 'settings.gradle'].includes(switchName)) return ['java'];
+  if (['pom.xml', 'build.gradle', 'build.gradle.kts', 'settings.gradle'].includes(switchName))
+    return ['java'];
   if (['mix.exs'].includes(switchName)) return ['elixir'];
   if (['pubspec.yaml'].includes(switchName)) return ['dart'];
   if (['Package.swift'].includes(switchName)) return ['swift'];
   if (['build.zig'].includes(switchName)) return ['zig'];
   if (['CMakeLists.txt'].includes(switchName)) return ['c', 'cpp'];
   if (['Makefile', 'makefile'].includes(switchName)) return ['c', 'cpp'];
-  if (['Dockerfile', 'docker-compose.yml', 'docker-compose.yaml'].includes(switchName)) return ['docker'];
-  if (name.endsWith('.csproj') || name.endsWith('.sln') || name.endsWith('.fsproj') || name.endsWith('.vbproj')) return ['csharp'];
+  if (['Dockerfile', 'docker-compose.yml', 'docker-compose.yaml'].includes(switchName))
+    return ['docker'];
+  if (
+    name.endsWith('.csproj') ||
+    name.endsWith('.sln') ||
+    name.endsWith('.fsproj') ||
+    name.endsWith('.vbproj')
+  )
+    return ['csharp'];
   if (name.endsWith('.cabal') || name === 'stack.yaml') return ['haskell'];
   if (name === 'DESCRIPTION') return ['r'];
   if (name.endsWith('.rockspec')) return ['ruby'];
   if (name === 'meson.build' || name === 'configure.ac') return ['c', 'cpp'];
-  if (name === 'foundry.toml' || name === 'hardhat.config.js' || name === 'hardhat.config.ts') return ['solidity'];
+  if (name === 'foundry.toml' || name === 'hardhat.config.js' || name === 'hardhat.config.ts')
+    return ['solidity'];
   return [];
 }
 
@@ -191,9 +248,17 @@ export function buildProfile(root, detected, files = []) {
     hasLicense: filesIn(root).some((f) => /^(licen[sc]e|copying)(\.|$)/i.test(f)),
     hasEditorconfig: existsSync(join(root, '.editorconfig')),
     hasPreCommit: existsSync(join(root, '.pre-commit-config.yaml')) || isDir(join(root, '.husky')),
-    hasCi: isDir(join(root, '.github', 'workflows')) || existsSync(join(root, '.gitlab-ci.yml')) || isDir(join(root, '.circleci')),
-    hasDocker: existsSync(join(root, 'Dockerfile')) || filesIn(root).some((f) => /^Dockerfile\./.test(f)) || existsSync(join(root, 'docker-compose.yml')),
-    hasEnvExample: filesIn(root).some((f) => f === '.env.example' || f === '.env.sample' || f === '.env.template'),
+    hasCi:
+      isDir(join(root, '.github', 'workflows')) ||
+      existsSync(join(root, '.gitlab-ci.yml')) ||
+      isDir(join(root, '.circleci')),
+    hasDocker:
+      existsSync(join(root, 'Dockerfile')) ||
+      filesIn(root).some((f) => /^Dockerfile\./.test(f)) ||
+      existsSync(join(root, 'docker-compose.yml')),
+    hasEnvExample: filesIn(root).some(
+      (f) => f === '.env.example' || f === '.env.sample' || f === '.env.template',
+    ),
     hasEnv: existsSync(join(root, '.env')),
     isPython: ecosystemLangs.has('python'),
     isNode: ecosystemLangs.has('javascript') || ecosystemLangs.has('typescript'),

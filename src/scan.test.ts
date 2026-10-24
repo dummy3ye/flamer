@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
@@ -7,11 +7,41 @@ import { tmpdir } from 'node:os';
 import {
   extractMarkers,
   extractSecrets,
+  extractUnfinished,
   isSource,
   isLineStructured,
   scanFile,
   SECRET_PATTERNS,
-} from './scan.mjs';
+} from './scan.js';
+
+test('extractUnfinished: detects explicit placeholders but ignores comments', () => {
+  const src = [
+    '// throw new Error("not implemented")',
+    'function run() {',
+    '  throw new Error("Not implemented yet");',
+    '}',
+    'try { run(); } catch (error) {}',
+  ].join('\n');
+  assert.deepEqual(extractUnfinished(src), [
+    { kind: 'not-implemented error', line: 3 },
+    { kind: 'empty error handler', line: 5 },
+  ]);
+});
+
+test('scanFile: records unfinished implementation signals', () => {
+  const src = 'export function run() {\n  throw new Error("not implemented");\n}\n';
+  withTempFile(src, (abs) => {
+    const out = scanFile({
+      abs,
+      rel: 'sample.ts',
+      name: 'sample.ts',
+      ext: '.ts',
+      size: Buffer.byteLength(src),
+      depth: 1,
+    });
+    assert.deepEqual(out.unfinished, [{ kind: 'not-implemented error', line: 2 }]);
+  });
+});
 
 /* Comment specs drawn from the registry, so the tests exercise the real ones. */
 const JS = { line: '//', block: [['/*', '*/']] };
@@ -40,7 +70,10 @@ test('extractMarkers: reports the correct line for a line comment', () => {
 
 test('extractMarkers: multi-line block comment keeps accurate line numbers', () => {
   const src = ['/*', ' * HACK one', ' * still inside', ' * TODO two', ' */'].join('\n');
-  assert.deepEqual(pairs(src, JS), [['HACK', 2], ['TODO', 4]]);
+  assert.deepEqual(pairs(src, JS), [
+    ['HACK', 2],
+    ['TODO', 4],
+  ]);
 });
 
 test('extractMarkers: marker on the same line a block comment opens', () => {
@@ -95,7 +128,10 @@ test('extractMarkers: a comment opener of another language is not a comment', ()
 
 test('extractMarkers: curly-brace block comments', () => {
   const src = ['-- TODO a', '{- FIXME', '  b -}'].join('\n');
-  assert.deepEqual(pairs(src, HASKELL), [['TODO', 1], ['FIXME', 2]]);
+  assert.deepEqual(pairs(src, HASKELL), [
+    ['TODO', 1],
+    ['FIXME', 2],
+  ]);
 });
 
 test('extractMarkers: double-dash block comments', () => {
@@ -240,8 +276,22 @@ test('isSource: a file with no recognized language does not count', () => {
 
 test('isSource: a manifest matched by filename does not count', () => {
   // requirements.txt resolves to python by name, but it is not source code.
-  assert.equal(isSource(rec({ rel: 'requirements.txt', name: 'requirements.txt', ext: '.txt', lang: 'python', langVia: 'filename' })), false);
-  assert.equal(isSource(rec({ rel: 'Makefile', name: 'Makefile', ext: '', lang: 'c', langVia: 'filename' })), false);
+  assert.equal(
+    isSource(
+      rec({
+        rel: 'requirements.txt',
+        name: 'requirements.txt',
+        ext: '.txt',
+        lang: 'python',
+        langVia: 'filename',
+      }),
+    ),
+    false,
+  );
+  assert.equal(
+    isSource(rec({ rel: 'Makefile', name: 'Makefile', ext: '', lang: 'c', langVia: 'filename' })),
+    false,
+  );
 });
 
 test('isSource: binaries, generated files and lockfiles are excluded', () => {
@@ -273,7 +323,14 @@ function withTempFile(contents, fn) {
 
 test('scanFile: counts lines and records the language', () => {
   withTempFile('const a = 1;\nconst b = 2;\n', (abs) => {
-    const out = scanFile({ abs, rel: 'sample.ts', name: 'sample.ts', ext: '.ts', size: 26, depth: 1 });
+    const out = scanFile({
+      abs,
+      rel: 'sample.ts',
+      name: 'sample.ts',
+      ext: '.ts',
+      size: 26,
+      depth: 1,
+    });
     assert.equal(out.lang, 'typescript');
     assert.equal(out.langVia, 'ext');
     assert.equal(out.lines, 2);
@@ -282,7 +339,14 @@ test('scanFile: counts lines and records the language', () => {
 
 test('scanFile: counts a final line with no trailing newline', () => {
   withTempFile('const a = 1;', (abs) => {
-    const out = scanFile({ abs, rel: 'sample.ts', name: 'sample.ts', ext: '.ts', size: 12, depth: 1 });
+    const out = scanFile({
+      abs,
+      rel: 'sample.ts',
+      name: 'sample.ts',
+      ext: '.ts',
+      size: 12,
+      depth: 1,
+    });
     assert.equal(out.lines, 1);
     assert.equal(out.noTrailingNewline, true);
   });
@@ -290,7 +354,14 @@ test('scanFile: counts a final line with no trailing newline', () => {
 
 test('scanFile: marks a zero-byte file as empty without reading it', () => {
   withTempFile('', (abs) => {
-    const out = scanFile({ abs, rel: 'sample.ts', name: 'sample.ts', ext: '.ts', size: 0, depth: 1 });
+    const out = scanFile({
+      abs,
+      rel: 'sample.ts',
+      name: 'sample.ts',
+      ext: '.ts',
+      size: 0,
+      depth: 1,
+    });
     assert.equal(out.empty, true);
     assert.equal(out.lines, 0);
   });
@@ -298,58 +369,124 @@ test('scanFile: marks a zero-byte file as empty without reading it', () => {
 
 test('scanFile: detects CRLF line endings', () => {
   withTempFile('const a = 1;\r\nconst b = 2;\r\n', (abs) => {
-    const out = scanFile({ abs, rel: 'sample.ts', name: 'sample.ts', ext: '.ts', size: 28, depth: 1 });
+    const out = scanFile({
+      abs,
+      rel: 'sample.ts',
+      name: 'sample.ts',
+      ext: '.ts',
+      size: 28,
+      depth: 1,
+    });
     assert.equal(out.crlf, true);
   });
 });
 
 test('scanFile: counts lines longer than 200 columns', () => {
   withTempFile(`const wide = "${'x'.repeat(250)}";\n`, (abs) => {
-    const out = scanFile({ abs, rel: 'sample.ts', name: 'sample.ts', ext: '.ts', size: 270, depth: 1 });
+    const out = scanFile({
+      abs,
+      rel: 'sample.ts',
+      name: 'sample.ts',
+      ext: '.ts',
+      size: 270,
+      depth: 1,
+    });
     assert.equal(out.longLines, 1);
     assert.ok(out.maxLine > 200);
   });
 });
 
 test('scanFile: finds merge conflict markers', () => {
-  const src = ['const a = 1;', '<<<<<<< HEAD', 'const b = 2;', '=======', 'const b = 3;', '>>>>>>> other'].join('\n');
+  const src = [
+    'const a = 1;',
+    '<<<<<<< HEAD',
+    'const b = 2;',
+    '=======',
+    'const b = 3;',
+    '>>>>>>> other',
+  ].join('\n');
   withTempFile(src, (abs) => {
-    const out = scanFile({ abs, rel: 'sample.ts', name: 'sample.ts', ext: '.ts', size: src.length, depth: 1 });
+    const out = scanFile({
+      abs,
+      rel: 'sample.ts',
+      name: 'sample.ts',
+      ext: '.ts',
+      size: src.length,
+      depth: 1,
+    });
     assert.deepEqual(out.conflictLines, [2, 4, 6]);
   });
 });
 
 test('scanFile: a clean file reports no conflicts', () => {
   withTempFile('const a = 1;\n', (abs) => {
-    const out = scanFile({ abs, rel: 'sample.ts', name: 'sample.ts', ext: '.ts', size: 13, depth: 1 });
+    const out = scanFile({
+      abs,
+      rel: 'sample.ts',
+      name: 'sample.ts',
+      ext: '.ts',
+      size: 13,
+      depth: 1,
+    });
     assert.deepEqual(out.conflictLines, []);
   });
 });
 
 test('scanFile: collects comment markers from the file', () => {
   withTempFile('// TODO: something\nconst a = 1;\n', (abs) => {
-    const out = scanFile({ abs, rel: 'sample.ts', name: 'sample.ts', ext: '.ts', size: 35, depth: 1 });
-    assert.deepEqual(out.markers.map((m) => m.type), ['TODO']);
+    const out = scanFile({
+      abs,
+      rel: 'sample.ts',
+      name: 'sample.ts',
+      ext: '.ts',
+      size: 35,
+      depth: 1,
+    });
+    assert.deepEqual(
+      out.markers.map((m) => m.type),
+      ['TODO'],
+    );
   });
 });
 
 test('scanFile: detects a shebang', () => {
   withTempFile('#!/usr/bin/env node\nconsole.log(1);\n', (abs) => {
-    const out = scanFile({ abs, rel: 'sample.ts', name: 'sample.ts', ext: '.ts', size: 33, depth: 1 });
+    const out = scanFile({
+      abs,
+      rel: 'sample.ts',
+      name: 'sample.ts',
+      ext: '.ts',
+      size: 33,
+      depth: 1,
+    });
     assert.equal(out.hasShebang, true);
   });
 });
 
 test('scanFile: flags a generated file by name', () => {
   withTempFile('export const x = 1;\n', (abs) => {
-    const out = scanFile({ abs, rel: 'x.generated.ts', name: 'x.generated.ts', ext: '.ts', size: 19, depth: 1 });
+    const out = scanFile({
+      abs,
+      rel: 'x.generated.ts',
+      name: 'x.generated.ts',
+      ext: '.ts',
+      size: 19,
+      depth: 1,
+    });
     assert.equal(out.isGenerated, true);
   });
 });
 
 test('scanFile: flags a lockfile by name', () => {
   withTempFile('{}\n', (abs) => {
-    const out = scanFile({ abs, rel: 'package-lock.json', name: 'package-lock.json', ext: '.json', size: 3, depth: 1 });
+    const out = scanFile({
+      abs,
+      rel: 'package-lock.json',
+      name: 'package-lock.json',
+      ext: '.json',
+      size: 3,
+      depth: 1,
+    });
     assert.equal(out.isLockfile, true);
   });
 });
@@ -361,7 +498,14 @@ test('scanFile: marks binary content and reads no further', () => {
     const bytes = Buffer.alloc(2048);
     bytes.write('\x00\x01\x02\x03', 0, 'binary');
     writeFileSync(abs, bytes);
-    const out = scanFile({ abs, rel: 'blob.js', name: 'blob.js', ext: '.js', size: bytes.length, depth: 1 });
+    const out = scanFile({
+      abs,
+      rel: 'blob.js',
+      name: 'blob.js',
+      ext: '.js',
+      size: bytes.length,
+      depth: 1,
+    });
     assert.equal(out.isBinary, true);
     assert.equal(out.lines, 0);
   } finally {
@@ -370,7 +514,14 @@ test('scanFile: marks binary content and reads no further', () => {
 });
 
 test('scanFile: tolerates a file that does not exist', () => {
-  const out = scanFile({ abs: '/definitely/not/here.ts', rel: 'here.ts', name: 'here.ts', ext: '.ts', size: 50, depth: 1 });
+  const out = scanFile({
+    abs: '/definitely/not/here.ts',
+    rel: 'here.ts',
+    name: 'here.ts',
+    ext: '.ts',
+    size: 50,
+    depth: 1,
+  });
   assert.equal(out.lines, 0);
   assert.equal(out.isBinary, false);
 });

@@ -12,16 +12,16 @@
  * and continues with the rest.
  */
 
-/** @typedef {import('../util/findings.mjs').Finding} Finding */
+/** @typedef {import('../util/findings.js').Finding} Finding */
 
-import * as universal from './universal.mjs';
-import * as testing from './testing.mjs';
-import * as git from './git.mjs';
-import * as node from './node.mjs';
-import * as python from './python.mjs';
-import * as systems from './systems.mjs';
-import * as notebooks from './notebooks.mjs';
-import * as scaffolding from './scaffolding.mjs';
+import * as universal from './universal.js';
+import * as testing from './testing.js';
+import * as git from './git.js';
+import * as node from './node.js';
+import * as python from './python.js';
+import * as systems from './systems.js';
+import * as notebooks from './notebooks.js';
+import * as scaffolding from './scaffolding.js';
 
 export const ANALYZERS = [
   { id: 'universal', label: 'Universal (secrets, bloat, markers, hygiene)', fn: universal.analyze },

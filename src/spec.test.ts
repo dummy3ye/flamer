@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'child_process';
 import { readFileSync, existsSync, mkdtempSync, writeFileSync } from 'fs';
@@ -7,15 +7,17 @@ import { fileURLToPath } from 'url';
 import { tmpdir } from 'os';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const CLI = join(ROOT, 'flamer.mjs');
+const CLI = join(ROOT, 'dist/cli.js');
 const SPEC = join(ROOT, 'docs', 'SPEC.md');
 
 const run = (args, cwd = ROOT) =>
-  JSON.parse(execFileSync(process.execPath, [CLI, ...args, '--format', 'json'], {
-    encoding: 'utf-8',
-    cwd,
-    maxBuffer: 64 * 1024 * 1024,
-  }));
+  JSON.parse(
+    execFileSync(process.execPath, [CLI, ...args, '--format', 'json'], {
+      encoding: 'utf-8',
+      cwd,
+      maxBuffer: 64 * 1024 * 1024,
+    }),
+  );
 
 /**
  * The spec is the only thing holding flamer and poison together. Neither
@@ -50,7 +52,7 @@ test('every severity the report uses is named in the spec', () => {
   for (const f of report.findings) {
     assert.ok(
       ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'].includes(f.severity),
-      `undocumented severity ${f.severity} on ${f.title}`
+      `undocumented severity ${f.severity} on ${f.title}`,
     );
   }
 });
@@ -99,7 +101,7 @@ test('the README test count is stated and not obviously wrong', () => {
   // magnitude, and leave the exact match to CI, which runs where the count has
   // settled.
   const readme = readFileSync(join(ROOT, 'README.md'), 'utf-8');
-  const claimed = Number(/# all (\d+)/.exec(readme)?.[1]);
-  assert.ok(claimed, 'README does not state a test count after "# all"');
+  const claimed = Number(/\b(\d+) tests\b/.exec(readme)?.[1]);
+  assert.ok(claimed, 'README does not state a test count');
   assert.ok(claimed >= 165, `README claims only ${claimed} tests, which cannot be right`);
 });

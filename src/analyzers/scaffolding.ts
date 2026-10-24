@@ -4,13 +4,12 @@
  * SQL, Solidity, Haskell, Elixir, Dart, Swift, R, Lua).
  */
 import { join } from 'path';
-import { finding } from '../util/findings.mjs';
-import { readText, readJSON } from '../util/fs.mjs';
+import { finding } from '../util/findings.js';
+import { readText, readJSON } from '../util/fs.js';
 
 function scaffolding(ctx) {
   const out = [];
   const t = ctx.profile.tooling;
-  const rootFiles = ctx.rootFileNames;
 
   if (!t.hasReadme && ctx.sourceFiles.length > 0) {
     out.push(
@@ -18,8 +17,9 @@ function scaffolding(ctx) {
         category: 'vcs',
         severity: 'MEDIUM',
         title: 'No README found',
-        detail: 'A repository with no README forces every new contributor to reverse-engineer how to run it.',
-      })
+        detail:
+          'A repository with no README forces every new contributor to reverse-engineer how to run it.',
+      }),
     );
   }
   if (!t.hasLicense) {
@@ -29,7 +29,7 @@ function scaffolding(ctx) {
         severity: 'MEDIUM',
         title: 'No LICENSE file',
         detail: 'No license means nobody may legally use, modify, or redistribute this code.',
-      })
+      }),
     );
   }
   if (!t.hasGitignore && (t.isNode || t.isPython || t.isRust || t.isGo)) {
@@ -38,8 +38,9 @@ function scaffolding(ctx) {
         category: 'vcs',
         severity: 'HIGH',
         title: 'No .gitignore',
-        detail: 'A code project with no .gitignore will accumulate build output, virtualenvs, and node_modules as untracked noise.',
-      })
+        detail:
+          'A code project with no .gitignore will accumulate build output, virtualenvs, and node_modules as untracked noise.',
+      }),
     );
   }
   if (!t.hasEditorconfig) {
@@ -49,7 +50,7 @@ function scaffolding(ctx) {
         severity: 'LOW',
         title: 'No .editorconfig',
         detail: 'No shared whitespace/encoding standard. Formatting churns between contributors.',
-      })
+      }),
     );
   }
   if (t.hasEnv && !t.hasEnvExample && (t.isNode || t.isPython)) {
@@ -58,8 +59,9 @@ function scaffolding(ctx) {
         category: 'vcs',
         severity: 'MEDIUM',
         title: '.env present but no .env.example',
-        detail: 'Documenting required variables (without values) is the cheapest onboarding win available.',
-      })
+        detail:
+          'Documenting required variables (without values) is the cheapest onboarding win available.',
+      }),
     );
   }
   if (t.isNode && !t.hasCi) {
@@ -68,8 +70,9 @@ function scaffolding(ctx) {
         category: 'build',
         severity: 'MEDIUM',
         title: 'No CI configuration detected',
-        detail: 'No .github/workflows, .gitlab-ci.yml, or .circleci. Nothing runs the tests automatically.',
-      })
+        detail:
+          'No .github/workflows, .gitlab-ci.yml, or .circleci. Nothing runs the tests automatically.',
+      }),
     );
   }
   return out;
@@ -78,7 +81,6 @@ function scaffolding(ctx) {
 /** Generic manifest presence checks keyed by ecosystem trigger files. */
 function manifests(ctx) {
   const out = [];
-  const t = ctx.profile.tooling;
   const has = (f) => ctx.rootFileNames.has(f);
 
   if (has('Gemfile') && !has('Gemfile.lock')) {
@@ -90,7 +92,7 @@ function manifests(ctx) {
         detail: 'Without the lockfile, gem versions drift between installs.',
         files: ['Gemfile'],
         lang: 'ruby',
-      })
+      }),
     );
   }
   if (has('Gemfile') && !has('.ruby-version')) {
@@ -101,7 +103,7 @@ function manifests(ctx) {
         title: 'No .ruby-version',
         detail: 'Ruby version unpinned.',
         lang: 'ruby',
-      })
+      }),
     );
   }
 
@@ -114,7 +116,7 @@ function manifests(ctx) {
         detail: 'No lockfile means dependency versions are not pinned.',
         files: ['composer.json'],
         lang: 'php',
-      })
+      }),
     );
   }
   if (has('composer.json')) {
@@ -128,22 +130,27 @@ function manifests(ctx) {
           detail: 'A PHP project with no runtime requirements declared.',
           files: ['composer.json'],
           lang: 'php',
-        })
+        }),
       );
     }
   }
 
   const gradleFiles = ['build.gradle', 'build.gradle.kts'].filter((f) => has(f));
-  if (gradleFiles.length > 0 && !has('gradle.lockfile') && !has('gradle/verification-metadata.xml')) {
+  if (
+    gradleFiles.length > 0 &&
+    !has('gradle.lockfile') &&
+    !has('gradle/verification-metadata.xml')
+  ) {
     out.push(
       finding({
         category: 'deps',
         severity: 'LOW',
         title: 'Gradle build with no dependency locking or verification',
-        detail: 'gradle.lockfile or dependency verification metadata pins and checksums your dependencies.',
+        detail:
+          'gradle.lockfile or dependency verification metadata pins and checksums your dependencies.',
         files: gradleFiles,
         lang: 'java',
-      })
+      }),
     );
   }
 
@@ -156,7 +163,7 @@ function manifests(ctx) {
         detail: 'Commit Package.resolved to pin exact dependency versions for apps.',
         files: ['Package.swift'],
         lang: 'swift',
-      })
+      }),
     );
   }
 
@@ -169,7 +176,7 @@ function manifests(ctx) {
         detail: 'No lockfile for hex dependencies.',
         files: ['mix.exs'],
         lang: 'elixir',
-      })
+      }),
     );
   }
 
@@ -182,7 +189,7 @@ function manifests(ctx) {
         detail: 'Applications should commit pubspec.lock to pin package versions.',
         files: ['pubspec.yaml'],
         lang: 'dart',
-      })
+      }),
     );
   }
 
@@ -202,11 +209,12 @@ function sql(ctx) {
         category: 'structure',
         severity: 'LOW',
         title: `SELECT * in ${starFiles.length} SQL file(s)`,
-        detail: 'Column-list-independent queries break silently when the schema changes. Enumerate columns.',
+        detail:
+          'Column-list-independent queries break silently when the schema changes. Enumerate columns.',
         files: starFiles.slice(0, 8).map((f) => f.rel),
         count: starFiles.length,
         lang: 'sql',
-      })
+      }),
     );
   }
   return out;
