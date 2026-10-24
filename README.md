@@ -52,11 +52,17 @@ can be used locally, in pull requests, or in CI.
   C#, Zig, SQL, notebooks, and additional language profiles.
 - **Stable JSON output:** suitable for CI annotations and other automation.
 - **Single-pass scanning:** files are walked once and content is read once.
+- **Optional native workers:** Rust and C++ workers for isolated file metrics,
+  with TypeScript remaining the default engine.
 
 ## Requirements
 
 - Node.js 18 or newer
 - npm
+
+The default TypeScript engine needs only Node.js and npm. Native mode additionally
+requires Rust/Cargo for the Rust worker or a C++17 compiler and CMake for the
+C++ worker.
 
 ## Quick start
 
@@ -185,12 +191,16 @@ Use `--engine auto` to fall back to TypeScript when the worker is unavailable.
 The native protocol and worker details are documented in
 [`native/core/README.md`](native/core/README.md).
 
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the runtime layers,
+worker protocol, engine selection, and native development workflow.
+
 ## How it works
 
 1. Detect the repository layout, languages, and ecosystems.
 2. Walk the tree once and collect file metadata and content-derived signals.
 3. Run isolated analyzers against the collected records.
-4. Sort findings and emit JSON or a concise summary.
+4. Optionally collect native file metrics through the versioned worker protocol.
+5. Sort findings and emit JSON or a concise summary.
 
 Analyzers are intentionally factual and conservative. A finding should identify
 something actionable rather than merely express a preference.

@@ -1,6 +1,6 @@
 {
   "name": "flamerjs",
-  "version": "0.1.6",
+  "version": "1.0.0",
   "description": "Language-agnostic code health auditor that walks a repository once and reports what is wrong with it",
   "license": "MIT",
   "type": "module",

@@ -4,6 +4,23 @@ All notable changes to flamer are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-10-24
+
+### Added
+
+- Optional Rust and C++ native workers under `native/core` for isolated file
+  metrics.
+- Versioned JSONL worker protocol with TypeScript integration through
+  `--engine typescript|native|auto`.
+- Dedicated native Rust and C++ build/test workflows.
+- Architecture documentation covering runtime layers, protocol, and fallback
+  behavior.
+
+### Fixed
+
+- Native execution failures are explicit in `native` mode and safely fall back
+  to TypeScript in `auto` mode.
+
 ## [Unreleased]
 
 ### Fixed
@@ -96,7 +113,8 @@ Measured on a 3.0 GB monorepo of 98,161 files, 71,150 of them source:
 - `poison` is a separate project. Flamer does not import it, and the handoff is
   a runtime capability check in `SKILL.md` rather than a code dependency.
 
-[Unreleased]: https://github.com/dummy3ye/flamer/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/dummy3ye/flamer/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/dummy3ye/flamer/releases/tag/v1.0.0
 [0.1.6]: https://github.com/dummy3ye/flamer/releases/tag/v0.1.6
 [0.1.5]: https://github.com/dummy3ye/flamer/releases/tag/v0.1.5
 [0.1.0]: https://github.com/OWNER/flamer/releases/tag/v0.1.0
