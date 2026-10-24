@@ -21,14 +21,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Native execution failures are explicit for targeted workers and safely fall
   back to TypeScript in the default `all` mode.
 
-## [Unreleased]
+## [1.1.0] - 2026-10-24
 
 ### Added
 
-- Parallel native file processing in the Rust and C++ workers.
+- Optional platform-specific npm packages containing both native workers.
+- Release automation for Linux x64, macOS x64/arm64, and Windows x64 native
+  packages.
+- A native package builder and explicit Rust/C++ build-phase output.
 - `scripts/install.sh` with npm installation and guarded native release-asset
   installation paths.
-- The default `flamer .` execution now coordinates TypeScript, Rust, and C++
+- The default `flamer .` execution coordinates TypeScript, Rust, and C++
   together, with pure TypeScript fallback when native workers are unavailable.
 - Rust owns shared file metrics and Rust-specific checks; C++ owns C/C++-specific
   checks, so the workers no longer perform the same analysis.
@@ -38,8 +41,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - CI now builds before tests that execute the bundled CLI.
 - Node 18 builds use a compatible pinned tsup release.
 - Conventional Commit validation accepts the `ci` type.
-
-### Added
 
 - Dedicated Codecov coverage reporting and CodeQL analysis workflows.
 
@@ -123,7 +124,8 @@ Measured on a 3.0 GB monorepo of 98,161 files, 71,150 of them source:
 - `poison` is a separate project. Flamer does not import it, and the handoff is
   a runtime capability check in `SKILL.md` rather than a code dependency.
 
-[Unreleased]: https://github.com/dummy3ye/flamer/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/dummy3ye/flamer/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/dummy3ye/flamer/releases/tag/v1.1.0
 [1.0.0]: https://github.com/dummy3ye/flamer/releases/tag/v1.0.0
 [0.1.6]: https://github.com/dummy3ye/flamer/releases/tag/v0.1.6
 [0.1.5]: https://github.com/dummy3ye/flamer/releases/tag/v0.1.5
