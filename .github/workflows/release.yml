@@ -160,7 +160,42 @@ jobs:
           mkdir -p release-assets
           cp "native/packages/$target/bin/flamer-core$extension" "release-assets/flamer-core-rust-$target$extension"
           cp "native/packages/$target/bin/flamer-core-cpp$extension" "release-assets/flamer-core-cpp-$target$extension"
-          (cd release-assets && shasum -a 256 * > checksums-${target}.txt)
+          if command -v shasum >/dev/null 2>&1; then
+            (cd release-assets && shasum -a 256 * > "checksums-${target}.txt")
+          elif command -v sha256sum >/dev/null 2>&1; then
+            (cd release-assets && sha256sum * > "checksums-${target}.txt")
+          elif command -v certutil >/dev/null 2>&1; then
+            (
+              cd release-assets
+              {
+                for f in *; do
+                  [ -f "$f" ] || continue
+                  [ "$f" = "checksums-${target}.txt" ] && continue
+                  h="$(certutil -hashfile "$f" SHA256 | sed -n '2p' | tr -d '\r' | tr -d ' ')"
+                  echo "${h}  ${f}"
+                done
+              } > "checksums-${target}.txt"
+            )
+          else
+            node -e "
+              const fs=require('fs');
+              const crypto=require('crypto');
+              const path=require('path');
+              const dir='release-assets';
+              const target=process.env.TARGET;
+              const out=fs.createWriteStream(path.join(dir, 'checksums-'+target+'.txt'));
+              for (const f of fs.readdirSync(dir)) {
+                if (f.startsWith('checksums-')) continue;
+                const p=path.join(dir,f);
+                if (!fs.statSync(p).isFile()) continue;
+                const h=crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
+                out.write(h+'  '+f+'\n');
+              }
+              out.end();
+            "
+          fi
+        env:
+          TARGET: ${{ matrix.target }}
 
       - name: Upload native assets to GitHub Release
         uses: softprops/action-gh-release@v2
