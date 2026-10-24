@@ -51,18 +51,21 @@ can be used locally, in pull requests, or in CI.
 - **Language-aware checks:** JavaScript/TypeScript, Python, Rust, Go, C/C++,
   C#, Zig, SQL, notebooks, and additional language profiles.
 - **Stable JSON output:** suitable for CI annotations and other automation.
-- **Single-pass scanning:** files are walked once and content is read once.
-- **Optional native workers:** Rust and C++ workers for isolated file metrics,
-  with TypeScript remaining the default engine.
+- **Single-pass TypeScript scanning:** the repository is walked once and
+  content is collected once before analyzers run.
+- **Coordinated native workers:** Rust handles shared file metrics and
+  Rust-specific checks, while C++ handles C/C++ checks; TypeScript remains the
+  source of truth and fallback path.
 
 ## Requirements
 
 - Node.js 18 or newer
 - npm
 
-The default TypeScript engine needs only Node.js and npm. Native mode additionally
-requires Rust/Cargo for the Rust worker or a C++17 compiler and CMake for the
-C++ worker.
+The default TypeScript engine needs only Node.js and npm. Building native
+workers from this repository additionally requires Rust/Cargo and a C++17
+compiler with CMake. Published npm installs use TypeScript unless a compatible
+native worker has been built or supplied explicitly.
 
 ## Quick start
 
@@ -180,40 +183,52 @@ The current test suite contains **175 tests**.
 ### Native engine
 
 Flamer runs all three components by default: TypeScript analyzers plus the Rust
-and C++ native workers. The native workers parallelize file metrics and do not
-change findings:
+and C++ native workers. They do different work and run concurrently:
+
+- TypeScript walks the repository, runs the generic analyzers, and produces the
+  report.
+- Rust computes shared metrics for all selected files and checks Rust files for
+  `.unwrap()` usage.
+- C++ checks only C and C++ files for native-language issues such as
+  `#include <bits/stdc++.h>`.
 
 ```bash
 npm run native:build:all
 node dist/cli.js .
 ```
 
-If either native binary is unavailable or fails, the default `all` mode falls
-back to pure TypeScript. Use `--engine typescript` for a native-free scan, or
-`--engine rust` / `--engine cpp` to require one specific worker.
+Native findings are merged into the TypeScript report only after all requested
+native jobs succeed. If a native binary is unavailable or fails, the default
+`all` mode falls back to a pure TypeScript report. Use `--engine typescript` for
+a native-free scan, or `--engine rust` / `--engine cpp` to require one specific
+worker; explicit native modes return an error when their worker fails.
 The native protocol and worker details are documented in
 [`native/core/README.md`](native/core/README.md).
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the runtime layers,
 worker protocol, engine selection, and native development workflow.
 
-For the npm installation path:
+For the source installation path:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/dummy3ye/flamer/master/scripts/install.sh | sh
 ```
 
-Native release binaries will use the same script with
-`FLAMER_VERSION=1.0.0 .../scripts/install.sh native` once platform assets are
-published.
+Platform-specific native release binaries are not bundled in the current npm
+package yet. The installer's `native` path is reserved for releases that attach
+those assets; until then, use the npm package or build the workers locally.
 
 ## How it works
 
 1. Detect the repository layout, languages, and ecosystems.
 2. Walk the tree once and collect file metadata and content-derived signals.
 3. Run isolated analyzers against the collected records.
-4. Optionally collect native file metrics through the versioned worker protocol.
-5. Sort findings and emit JSON or a concise summary.
+4. Run the requested native jobs through the versioned JSONL protocol. Native
+   jobs receive non-overlapping responsibilities and return metrics or
+   language-specific findings.
+5. Merge successful native findings, sort everything, and emit JSON or a
+   concise summary. In default `all` mode, any native failure returns to the
+   TypeScript-only result.
 
 Analyzers are intentionally factual and conservative. A finding should identify
 something actionable rather than merely express a preference.
