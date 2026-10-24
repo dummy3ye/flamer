@@ -16,7 +16,12 @@ if (!/^(linux|darwin|win32)-(x64|arm64)$/.test(target ?? '')) {
 const output = join(root, 'native', 'packages', target);
 const extension = target.startsWith('win32-') ? '.exe' : '';
 const rust = join(root, 'native', 'core', 'rust', 'target', 'release', `flamer-core${extension}`);
-const cpp = join(root, 'native', 'core', 'cpp', 'build', `flamer-core-cpp${extension}`);
+const cppRoot = join(root, 'native', 'core', 'cpp', 'build');
+const cppCandidates = [
+  join(cppRoot, `flamer-core-cpp${extension}`),
+  join(cppRoot, 'Release', `flamer-core-cpp${extension}`),
+];
+const cpp = cppCandidates.find((candidate) => existsSync(candidate)) ?? cppCandidates[0];
 if (!existsSync(rust) || !existsSync(cpp)) {
   throw new Error(`build both native workers before packaging ${target}`);
 }
