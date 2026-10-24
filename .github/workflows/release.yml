@@ -150,9 +150,10 @@ jobs:
         shell: bash
         env:
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          TARGET: ${{ matrix.target }}
         run: |
           version="$(node -p "require('./package.json').version")"
-          target="${{ matrix.target }}"
+          target="${TARGET}"
           extension=""
           if [[ "$target" == win32-* ]]; then
             extension=".exe"
@@ -170,7 +171,9 @@ jobs:
               {
                 for f in *; do
                   [ -f "$f" ] || continue
-                  [ "$f" = "checksums-${target}.txt" ] && continue
+                  case "$f" in
+                    checksums-*) continue ;;
+                  esac
                   h="$(certutil -hashfile "$f" SHA256 | sed -n '2p' | tr -d '\r' | tr -d ' ')"
                   echo "${h}  ${f}"
                 done
@@ -194,8 +197,6 @@ jobs:
               out.end();
             "
           fi
-        env:
-          TARGET: ${{ matrix.target }}
 
       - name: Upload native assets to GitHub Release
         uses: softprops/action-gh-release@v2
