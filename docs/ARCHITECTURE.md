@@ -1,9 +1,9 @@
 # Flamer architecture
 
-Flamer is a Node.js CLI with an optional native execution layer. TypeScript
+Flamer is a Node.js CLI with a coordinated native execution layer. TypeScript
 owns the public interface, repository traversal, analyzers, findings, and
-report format. Native workers provide isolated, opt-in performance helpers and
-must never silently change the meaning of a report.
+report format. Rust and C++ run together as native preprocessing workers for
+the same file set; their metrics enrich the report but never change findings.
 
 ## Runtime layers
 
@@ -12,7 +12,7 @@ CLI (src/cli.ts)
   ├─ argument parsing and terminal/JSON output
   ├─ repository detection and scope selection
   ├─ TypeScript scanner and analyzers
-  └─ optional native metrics adapter (src/native.ts)
+  └─ native metrics adapter (src/native.ts)
        ├─ Rust worker: native/core/rust
        └─ C++ worker: native/core/cpp
 ```
@@ -26,9 +26,10 @@ published npm package and does not require Rust, C++, Cargo, or CMake.
 
 ### Native layer
 
-The native layer currently computes file metrics: readable file count, byte
-count, and newline count. It is intentionally separate from analyzer logic so
-native failures cannot produce different findings or bypass redaction rules.
+The native layer computes file metrics: readable file count, byte count, and
+newline count. Rust and C++ receive the same file list and run together in the
+default `all` mode. It is intentionally separate from analyzer logic so native
+failures cannot produce different findings or bypass redaction rules.
 
 Rust is the primary worker and is built from
 `native/core/rust/Cargo.toml`. The C++ worker is a protocol-compatible
@@ -38,19 +39,19 @@ alternative built with CMake from `native/core/cpp/CMakeLists.txt`.
 
 The CLI accepts:
 
-| Engine       | Behavior                                                      |
-| ------------ | ------------------------------------------------------------- |
-| `typescript` | Default; never starts a native process.                       |
-| `native`     | Requires a native worker and exits with an error if it fails. |
-| `auto`       | Attempts the native worker and falls back to TypeScript.      |
+| Engine       | Behavior                                                                                                                         |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `all`        | Default; runs TypeScript, Rust, and C++ together. Falls back to pure TypeScript if either native worker is unavailable or fails. |
+| `typescript` | Runs only the TypeScript implementation.                                                                                         |
+| `rust`       | Runs TypeScript plus Rust; fails if Rust is unavailable.                                                                         |
+| `cpp`        | Runs TypeScript plus C++; fails if C++ is unavailable.                                                                           |
 
-Native mode is selected with `--engine native`. The worker can be overridden
-with the `FLAMER_CORE` environment variable, which is useful for selecting the
-C++ implementation:
+The workers can be overridden with `FLAMER_RUST_CORE` and `FLAMER_CPP_CORE`:
 
 ```bash
-FLAMER_CORE="$PWD/native/core/cpp/build/flamer-core-cpp" \
-  node dist/cli.js . --engine native
+FLAMER_RUST_CORE="$PWD/native/core/rust/target/release/flamer-core" \
+FLAMER_CPP_CORE="$PWD/native/core/cpp/build/flamer-core-cpp" \
+  node dist/cli.js .
 ```
 
 ## Worker protocol
@@ -109,9 +110,9 @@ worker artifacts before native installation is advertised as generally
 available.
 
 The eventual bundled release keeps the TypeScript CLI as the orchestration
-layer, packages the Rust worker as the default native engine, and may include
-the C++ worker as a platform-specific alternative. The current workers are not
-standalone CLI replacements and are not loaded simultaneously.
+layer and packages both Rust and C++ workers. They are not alternatives:
+standard execution starts both, while the explicit engine flags are for
+debugging, benchmarking, and degraded environments.
 
 ## Design constraints
 

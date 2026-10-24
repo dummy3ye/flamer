@@ -107,24 +107,24 @@ flamerjs /path/to/repository --format summary
 flamerjs [path] [options]
 ```
 
-| Option                                | Description                                                                   |
-| ------------------------------------- | ----------------------------------------------------------------------------- |
-| `--package, --scope <name>`           | Analyze only a named sub-project                                              |
-| `--path <dir>`                        | Set the repository root; defaults to the current directory                    |
-| `--format <json\|summary>`            | Select JSON or human-readable output; summary is the default                  |
-| `--out <file>`                        | Also write the JSON report to a file                                          |
-| `--fail-on <SEVERITY>`                | Exit with status 1 at or above `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, or `INFO` |
-| `--max-files <n>`                     | Limit the number of files scanned                                             |
-| `--commit-limit <n>`                  | Limit commits inspected by Git checks                                         |
-| `--no-git`                            | Skip Git analysis                                                             |
-| `--no-lockfile-warning`               | Suppress the missing-lockfile suggestion                                      |
-| `--ignore-dir <name>`                 | Ignore an additional directory name; repeatable                               |
-| `--quiet`                             | Suppress the human summary                                                    |
-| `--color`                             | Force ANSI colors                                                             |
-| `--no-color`                          | Disable ANSI colors                                                           |
-| `--engine <typescript\|native\|auto>` | Select the scan engine; TypeScript is the default                             |
-| `--list-languages`                    | List recognized language profiles                                             |
-| `--help`                              | Show command help                                                             |
+| Option                                  | Description                                                                   |
+| --------------------------------------- | ----------------------------------------------------------------------------- |
+| `--package, --scope <name>`             | Analyze only a named sub-project                                              |
+| `--path <dir>`                          | Set the repository root; defaults to the current directory                    |
+| `--format <json\|summary>`              | Select JSON or human-readable output; summary is the default                  |
+| `--out <file>`                          | Also write the JSON report to a file                                          |
+| `--fail-on <SEVERITY>`                  | Exit with status 1 at or above `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, or `INFO` |
+| `--max-files <n>`                       | Limit the number of files scanned                                             |
+| `--commit-limit <n>`                    | Limit commits inspected by Git checks                                         |
+| `--no-git`                              | Skip Git analysis                                                             |
+| `--no-lockfile-warning`                 | Suppress the missing-lockfile suggestion                                      |
+| `--ignore-dir <name>`                   | Ignore an additional directory name; repeatable                               |
+| `--quiet`                               | Suppress the human summary                                                    |
+| `--color`                               | Force ANSI colors                                                             |
+| `--no-color`                            | Disable ANSI colors                                                           |
+| `--engine <all\|typescript\|rust\|cpp>` | Run all engines (default) or select one engine                                |
+| `--list-languages`                      | List recognized language profiles                                             |
+| `--help`                                | Show command help                                                             |
 
 Exit status `0` means the scan completed; findings may still exist. Status `1`
 means `--fail-on` was reached, and status `2` indicates invalid usage or a
@@ -179,15 +179,18 @@ The current test suite contains **175 tests**.
 
 ### Optional native engine
 
-Flamer includes an experimental Rust worker for native file metrics. It is
-disabled by default and does not change findings:
+Flamer runs all three components by default: TypeScript analyzers plus the Rust
+and C++ native workers. The native workers parallelize file metrics and do not
+change findings:
 
 ```bash
-npm run native:build
-node dist/cli.js . --engine native
+npm run native:build:all
+node dist/cli.js .
 ```
 
-Use `--engine auto` to fall back to TypeScript when the worker is unavailable.
+If either native binary is unavailable or fails, the default `all` mode falls
+back to pure TypeScript. Use `--engine typescript` for a native-free scan, or
+`--engine rust` / `--engine cpp` to require one specific worker.
 The native protocol and worker details are documented in
 [`native/core/README.md`](native/core/README.md).
 

@@ -27,6 +27,8 @@
     "dev": "tsup --watch",
     "native:build": "cargo build --release --manifest-path native/core/rust/Cargo.toml",
     "native:test": "cargo test --manifest-path native/core/rust/Cargo.toml",
+    "native:build:cpp": "cmake -S native/core/cpp -B native/core/cpp/build -DCMAKE_BUILD_TYPE=Release && cmake --build native/core/cpp/build --config Release",
+    "native:build:all": "npm run native:build && npm run native:build:cpp",
     "prepublishOnly": "npm run lint && npm run build && npm test",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

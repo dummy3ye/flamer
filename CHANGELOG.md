@@ -28,6 +28,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Parallel native file processing in the Rust and C++ workers.
 - `scripts/install.sh` with npm installation and guarded native release-asset
   installation paths.
+- The default `flamer .` execution now coordinates TypeScript, Rust, and C++
+  together, with pure TypeScript fallback when native workers are unavailable.
 
 ### Fixed
 

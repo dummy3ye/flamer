@@ -15,8 +15,9 @@ Requests use protocol version `1`:
 ```
 
 The Rust and C++ workers parallelize independent file reads and return byte and
-newline counts. A native failure is
-reported by the CLI in `auto` mode and is fatal in explicit `native` mode.
+newline counts. Both receive the same request in the default `all` mode. A
+native failure falls back to TypeScript in `all` mode and is fatal when a
+specific worker is selected.
 The workers are helpers, not standalone CLI replacements; the npm-installed
 `flamerjs` command remains the user-facing entry point.
 
@@ -33,6 +34,6 @@ printf '%s\n' '{"protocol":1,"operation":"file_metrics","root":".","files":["REA
 ```bash
 cmake -S native/core/cpp -B native/core/cpp/build -DCMAKE_BUILD_TYPE=Release
 cmake --build native/core/cpp/build --config Release
-FLAMER_CORE="$PWD/native/core/cpp/build/flamer-core-cpp" \
-  node dist/cli.js . --engine native
+FLAMER_CPP_CORE="$PWD/native/core/cpp/build/flamer-core-cpp" \
+  node dist/cli.js . --engine cpp
 ```

@@ -43,7 +43,7 @@ function parseArgs(argv: string[]) {
     listLanguages: false,
     help: false,
     color: null as boolean | null,
-    engine: 'typescript' as 'typescript' | 'native' | 'auto',
+    engine: 'all' as 'all' | 'typescript' | 'rust' | 'cpp',
     ignoreDirs: [] as string[],
   };
   for (let i = 0; i < argv.length; i++) {
@@ -90,8 +90,8 @@ function parseArgs(argv: string[]) {
         opts.color = false;
         break;
       case '--engine':
-        opts.engine = (argv[++i] || 'typescript') as 'typescript' | 'native' | 'auto';
-        if (!['typescript', 'native', 'auto'].includes(opts.engine)) {
+        opts.engine = (argv[++i] || 'all') as 'all' | 'typescript' | 'rust' | 'cpp';
+        if (!['all', 'typescript', 'rust', 'cpp'].includes(opts.engine)) {
           process.stderr.write(`invalid engine: ${opts.engine}\n`);
           process.exit(2);
         }
@@ -136,8 +136,8 @@ Options:
   --quiet                    suppress the human summary
   --color                    force ANSI colors
   --no-color                 disable ANSI colors
-  --engine <typescript|native|auto>
-                            choose the scan engine (default: typescript)
+  --engine <all|typescript|rust|cpp>
+                            all runs TypeScript, Rust, and C++ (default: all)
   --list-languages           print the supported language table
   -h, --help                 show this help
 `);
@@ -303,21 +303,26 @@ function run(opts: any) {
   };
 
   if (opts.engine !== 'typescript') {
+    const workers = opts.engine === 'all' ? ['rust', 'cpp'] : [opts.engine];
+    const nativeResults: Record<string, any> = {};
     try {
-      const native = runNativeMetrics(
-        root,
-        scopedFiles.map((file: any) => file.rel),
-      );
-      report.metadata.native = {
-        engine: 'rust',
-        files: native.metrics.files,
-        bytes: native.metrics.bytes,
-        lines: native.metrics.lines,
-        durationMs: native.duration_ms,
-      };
+      for (const worker of workers) {
+        const native = runNativeMetrics(
+          root,
+          scopedFiles.map((file: any) => file.rel),
+          worker,
+        );
+        nativeResults[worker] = {
+          files: native.metrics.files,
+          bytes: native.metrics.bytes,
+          lines: native.metrics.lines,
+          durationMs: native.duration_ms,
+        };
+      }
+      report.metadata.native = { engine: opts.engine, workers: nativeResults };
     } catch (error: any) {
       const message = error?.message || String(error);
-      if (opts.engine === 'native') {
+      if (opts.engine !== 'all') {
         findings.push(
           finding({
             category: 'error',
@@ -327,10 +332,14 @@ function run(opts: any) {
           }),
         );
         report.findings = sortFindings(findings);
-        report.metadata.native = { engine: 'rust', error: message };
+        report.metadata.native = { engine: opts.engine, error: message };
         return { report, exitCode: 2 };
       }
-      report.metadata.native = { engine: 'typescript', fallback: message };
+      report.metadata.native = {
+        engine: 'typescript',
+        fallback: message,
+        workers: nativeResults,
+      };
     }
   }
 
