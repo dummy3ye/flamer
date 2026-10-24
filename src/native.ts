@@ -2,6 +2,7 @@ import { spawn } from 'child_process';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { createRequire } from 'module';
+import { homedir } from 'os';
 
 export type NativeWorker = 'rust' | 'cpp';
 
@@ -30,6 +31,27 @@ function packagedWorkerPath(worker: NativeWorker) {
   }
 }
 
+function downloadedWorkerPath(worker: NativeWorker) {
+  const directory =
+    process.env.FLAMER_NATIVE_DIR ||
+    join(
+      process.env.XDG_CACHE_HOME ||
+        (process.platform === 'win32'
+          ? process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local')
+          : join(homedir(), '.cache')),
+      'flamer',
+      'bin',
+    );
+  const extension = process.platform === 'win32' ? '.exe' : '';
+  const platform = `${process.platform}-${process.arch}`;
+  return join(
+    directory,
+    worker === 'rust'
+      ? `flamer-core-rust-${platform}${extension}`
+      : `flamer-core-cpp-${platform}${extension}`,
+  );
+}
+
 type NativeResponse = {
   protocol: number;
   ok: boolean;
@@ -54,6 +76,8 @@ export function nativeWorkerPath(root: string, worker: NativeWorker) {
   if (process.env.FLAMER_CORE && worker === 'rust') return process.env.FLAMER_CORE;
   const packaged = packagedWorkerPath(worker);
   if (packaged) return packaged;
+  const downloaded = downloadedWorkerPath(worker);
+  if (existsSync(downloaded)) return downloaded;
   return worker === 'rust'
     ? join(root, 'native', 'core', 'rust', 'target', 'release', 'flamer-core')
     : join(root, 'native', 'core', 'cpp', 'build', 'flamer-core-cpp');

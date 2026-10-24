@@ -4,6 +4,14 @@ All notable changes to flamer are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2026-10-24
+
+### Fixed
+
+- Standalone native installation now installs the CLI and both Rust/C++ workers.
+- Native workers are discovered automatically from the platform cache.
+- Added Windows PowerShell installation and checksum verification.
+
 ## [1.0.0] - 2026-10-24
 
 ### Added
@@ -139,7 +147,8 @@ Measured on a 3.0 GB monorepo of 98,161 files, 71,150 of them source:
 - `poison` is a separate project. Flamer does not import it, and the handoff is
   a runtime capability check in `SKILL.md` rather than a code dependency.
 
-[Unreleased]: https://github.com/dummy3ye/flamer/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/dummy3ye/flamer/compare/v1.1.3...HEAD
+[1.1.3]: https://github.com/dummy3ye/flamer/releases/tag/v1.1.3
 [1.1.2]: https://github.com/dummy3ye/flamer/releases/tag/v1.1.2
 [1.1.1]: https://github.com/dummy3ye/flamer/releases/tag/v1.1.1
 [1.1.0]: https://github.com/dummy3ye/flamer/releases/tag/v1.1.0

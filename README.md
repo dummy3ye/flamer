@@ -215,11 +215,20 @@ For the source installation path:
 curl -fsSL https://raw.githubusercontent.com/dummy3ye/flamer/master/scripts/install.sh | sh
 ```
 
-Platform-specific native release binaries are not bundled in the current npm
-package yet. The npm package uses optional native packages when they are
-published for the current platform; if npm skips them, TypeScript fallback is
-automatic. The installer's `native` path is reserved for standalone releases
-that attach those assets.
+The npm package uses optional native packages when they are published for the
+current platform; if npm skips them, TypeScript fallback is automatic. To
+install the CLI plus standalone Rust and C++ release workers on Unix-like
+systems:
+
+```bash
+FLAMER_VERSION=1.1.3 \
+  sh -c 'curl -fsSL https://raw.githubusercontent.com/dummy3ye/flamer/master/scripts/install.sh | sh -s -- native'
+flamer .
+```
+
+On Windows, run `scripts/install.ps1` from the repository or download it from
+the tagged source tree. Both installers verify SHA-256 checksums and place the
+two workers in the Flamer native cache.
 
 ## How it works
 
