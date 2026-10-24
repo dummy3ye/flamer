@@ -134,7 +134,14 @@ jobs:
           if npm view "$package_name@$version" version >/dev/null 2>&1; then
             echo "$package_name@$version is already published; skipping."
           else
-            npm publish --provenance --access public
+            if npm publish --provenance --access public; then
+              echo "Published $package_name@$version."
+            elif npm view "$package_name@$version" version >/dev/null 2>&1; then
+              echo "$package_name@$version was published concurrently; continuing."
+            else
+              echo "Publishing $package_name@$version failed and the version is unavailable." >&2
+              exit 1
+            fi
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
