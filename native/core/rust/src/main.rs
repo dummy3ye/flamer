@@ -58,7 +58,7 @@ fn process(request: Request) -> Response {
             .files
             .par_iter()
             .map(|relative| {
-                let path = Path::new(&request.root).join(&relative);
+                let path = Path::new(&request.root).join(relative);
                 match fs::read(&path) {
                     Ok(contents) => Ok((
                         contents.len() as u64,
