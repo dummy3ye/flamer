@@ -23,10 +23,10 @@
     "dist"
   ],
   "optionalDependencies": {
-    "@dummy3ye/flamer-native-darwin-arm64": "1.1.0",
-    "@dummy3ye/flamer-native-darwin-x64": "1.1.0",
-    "@dummy3ye/flamer-native-linux-x64": "1.1.0",
-    "@dummy3ye/flamer-native-win32-x64": "1.1.0"
+    "@dummy3ye/flamer-native-darwin-arm64": "1.1.1",
+    "@dummy3ye/flamer-native-darwin-x64": "1.1.1",
+    "@dummy3ye/flamer-native-linux-x64": "1.1.1",
+    "@dummy3ye/flamer-native-win32-x64": "1.1.1"
   },
   "scripts": {
     "build": "tsup",
