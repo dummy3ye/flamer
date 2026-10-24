@@ -24,6 +24,7 @@ import { scanFile, isSource, isLineStructured } from './scan.js';
 import { ANALYZERS } from './analyzers/index.js';
 import * as git from './util/git.js';
 import { LANGUAGES, allExtensions } from './registry.js';
+import { runNativeMetrics } from './native.js';
 
 const SPEC_VERSION = 1;
 
@@ -42,6 +43,7 @@ function parseArgs(argv: string[]) {
     listLanguages: false,
     help: false,
     color: null as boolean | null,
+    engine: 'typescript' as 'typescript' | 'native' | 'auto',
     ignoreDirs: [] as string[],
   };
   for (let i = 0; i < argv.length; i++) {
@@ -87,6 +89,13 @@ function parseArgs(argv: string[]) {
       case '--no-color':
         opts.color = false;
         break;
+      case '--engine':
+        opts.engine = (argv[++i] || 'typescript') as 'typescript' | 'native' | 'auto';
+        if (!['typescript', 'native', 'auto'].includes(opts.engine)) {
+          process.stderr.write(`invalid engine: ${opts.engine}\n`);
+          process.exit(2);
+        }
+        break;
       case '--list-languages':
         opts.listLanguages = true;
         break;
@@ -127,6 +136,8 @@ Options:
   --quiet                    suppress the human summary
   --color                    force ANSI colors
   --no-color                 disable ANSI colors
+  --engine <typescript|native|auto>
+                            choose the scan engine (default: typescript)
   --list-languages           print the supported language table
   -h, --help                 show this help
 `);
@@ -290,6 +301,38 @@ function run(opts: any) {
       analyzers: analyzerResults,
     },
   };
+
+  if (opts.engine !== 'typescript') {
+    try {
+      const native = runNativeMetrics(
+        root,
+        scopedFiles.map((file: any) => file.rel),
+      );
+      report.metadata.native = {
+        engine: 'rust',
+        files: native.metrics.files,
+        bytes: native.metrics.bytes,
+        lines: native.metrics.lines,
+        durationMs: native.duration_ms,
+      };
+    } catch (error: any) {
+      const message = error?.message || String(error);
+      if (opts.engine === 'native') {
+        findings.push(
+          finding({
+            category: 'error',
+            severity: 'CRITICAL',
+            title: 'Native engine failed',
+            detail: message,
+          }),
+        );
+        report.findings = sortFindings(findings);
+        report.metadata.native = { engine: 'rust', error: message };
+        return { report, exitCode: 2 };
+      }
+      report.metadata.native = { engine: 'typescript', fallback: message };
+    }
+  }
 
   let exitCode = 0;
   if (opts.failOn && report.metadata.worst && rank(report.metadata.worst) <= rank(opts.failOn)) {

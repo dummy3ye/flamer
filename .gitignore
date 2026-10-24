@@ -8,3 +8,4 @@ report.json
 *.cpuprofile
 coverage/
 .eslintcache
+native/core/rust/target/

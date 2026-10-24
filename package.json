@@ -25,6 +25,8 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
+    "native:build": "cargo build --release --manifest-path native/core/rust/Cargo.toml",
+    "native:test": "cargo test --manifest-path native/core/rust/Cargo.toml",
     "prepublishOnly": "npm run lint && npm run build && npm test",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

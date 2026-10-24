@@ -1,0 +1,31 @@
+name: Native C++
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'native/core/cpp/**'
+      - '.github/workflows/native-cpp.yml'
+  pull_request:
+    paths:
+      - 'native/core/cpp/**'
+      - '.github/workflows/native-cpp.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cpp:
+    name: Build C++ worker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S native/core/cpp -B native/core/cpp/build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build native/core/cpp/build --config Release --parallel
+      - name: Protocol smoke test
+        run: |
+          printf '%s\n' '{"protocol":1,"operation":"file_metrics","root":".","files":["README.md"]}' \
+            | native/core/cpp/build/flamer-core-cpp
