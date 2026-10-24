@@ -91,6 +91,10 @@ cmake -S native/core/cpp -B native/core/cpp/build -DCMAKE_BUILD_TYPE=Release
 cmake --build native/core/cpp/build --config Release
 ```
 
+The npm native scripts validate that Cargo and CMake are installed and return
+an actionable error when either toolchain is missing. The C++ CMake project
+also exports `compile_commands.json` and contains a protocol smoke test.
+
 Native builds are checked independently in the Native Rust and Native C++
 GitHub Actions workflows. Compiled output is ignored and is not committed.
 
