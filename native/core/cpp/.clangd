@@ -1,0 +1,7 @@
+CompileFlags:
+  Add: [-std=c++17, -Wall, -Wextra, -Wpedantic]
+Diagnostics:
+  UnusedIncludes: Strict
+  MissingIncludes: Strict
+Index:
+  Background: Build

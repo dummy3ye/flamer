@@ -21,6 +21,16 @@ specific worker is selected.
 The workers are helpers, not standalone CLI replacements; the npm-installed
 `flamerjs` command remains the user-facing entry point.
 
+The native projects are intentionally real language projects rather than
+single-file examples:
+
+- Rust has a reusable library in `rust/src/lib.rs`, a thin JSONL binary in
+  `rust/src/main.rs`, Cargo dependency locking, `rustfmt.toml`, `clippy.toml`,
+  `deny.toml`, and Cargo build configuration.
+- C++ has public declarations in `cpp/include/flamer/core.hpp`, analysis
+  implementation in `cpp/src/analyzer.cpp`, a protocol executable in
+  `cpp/src/main.cpp`, CMake configuration, `.clangd`, and `.clang-format`.
+
 ## Rust worker
 
 ```bash
