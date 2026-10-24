@@ -125,19 +125,37 @@ GitHub Actions workflows. Compiled output is ignored and is not committed.
 
 ## Release and installation roadmap
 
-The npm package remains the required, portable installation:
+The npm package remains the required installation:
 
 ```bash
 npm install --global flamerjs
 ```
 
-The planned native distribution publishes both workers for each supported
-OS/architecture. `scripts/install.sh native` will select matching Rust and C++
-assets, while npm remains the fallback for unsupported platforms. The release
-workflow must build, name, checksum, and attach both workers for Linux, macOS,
-and Windows before native installation is advertised as generally available.
-Until those assets exist, native workers are source-build artifacts rather than
-part of the published npm package.
+`flamerjs` declares platform-specific native packages under the publisher scope
+as optional
+dependencies. npm installs only the package matching the host OS and CPU:
+
+```text
+flamerjs
+└── @dummy3ye/flamer-native-linux-x64
+    ├── bin/flamer-core
+    └── bin/flamer-core-cpp
+```
+
+At runtime `src/native.ts` resolves both workers from that package. If npm
+skips the optional package, the package is unavailable for the platform, or a
+worker cannot start, default `all` mode falls back to TypeScript. The source
+build command creates the same package shape:
+
+```bash
+npm run native:build:all
+npm run native:package -- linux-x64
+```
+
+The release workflow must build and publish both workers for each supported
+OS/architecture package before that platform is advertised as native-enabled.
+The standalone installer and release archives can use the same worker
+artifacts.
 
 The eventual bundled release keeps the TypeScript CLI as the orchestration
 layer and packages both Rust and C++ workers. They are not alternatives:
@@ -146,7 +164,8 @@ debugging, benchmarking, and degraded environments.
 
 ## Design constraints
 
-- Keep the default npm installation dependency-free beyond Node.js.
+- Keep npm installation functional with Node.js alone; native packages remain
+  optional.
 - Keep findings and report semantics in TypeScript.
 - Keep workers deterministic and communicate only through the versioned
   protocol; stdout is protocol-only and diagnostics use stderr.

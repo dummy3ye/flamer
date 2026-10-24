@@ -9,3 +9,5 @@ report.json
 coverage/
 .eslintcache
 native/core/rust/target/
+native/core/cpp/build/
+native/packages/

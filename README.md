@@ -62,10 +62,11 @@ can be used locally, in pull requests, or in CI.
 - Node.js 18 or newer
 - npm
 
-The default TypeScript engine needs only Node.js and npm. Building native
-workers from this repository additionally requires Rust/Cargo and a C++17
-compiler with CMake. Published npm installs use TypeScript unless a compatible
-native worker has been built or supplied explicitly.
+The default TypeScript engine needs only Node.js and npm. The published package
+also declares optional, platform-specific native packages containing both
+workers, so a compatible npm install gets full mode automatically. Building
+workers from this repository requires Rust/Cargo and a C++17 compiler with
+CMake.
 
 ## Quick start
 
@@ -215,8 +216,10 @@ curl -fsSL https://raw.githubusercontent.com/dummy3ye/flamer/master/scripts/inst
 ```
 
 Platform-specific native release binaries are not bundled in the current npm
-package yet. The installer's `native` path is reserved for releases that attach
-those assets; until then, use the npm package or build the workers locally.
+package yet. The npm package uses optional native packages when they are
+published for the current platform; if npm skips them, TypeScript fallback is
+automatic. The installer's `native` path is reserved for standalone releases
+that attach those assets.
 
 ## How it works
 

@@ -31,6 +31,22 @@ single-file examples:
   implementation in `cpp/src/analyzer.cpp`, a protocol executable in
   `cpp/src/main.cpp`, CMake configuration, `.clangd`, and `.clang-format`.
 
+## npm distribution
+
+Published platform packages contain both workers:
+
+```text
+@dummy3ye/flamer-native-<platform>-<arch>/
+└── bin/
+    ├── flamer-core
+    └── flamer-core-cpp
+```
+
+The main `flamerjs` package lists these as optional dependencies. npm selects
+the package matching the host platform, and the TypeScript adapter discovers
+the `rust` and `cpp` export paths automatically. Build a package locally with
+`npm run native:package -- linux-x64` after building both workers.
+
 ## Rust worker
 
 ```bash

@@ -1,8 +1,34 @@
 import { spawn } from 'child_process';
 import { existsSync } from 'fs';
 import { join } from 'path';
+import { createRequire } from 'module';
 
 export type NativeWorker = 'rust' | 'cpp';
+
+const require = createRequire(import.meta.url);
+
+function nativePackageName() {
+  const platform = `${process.platform}-${process.arch}`;
+  const supported = new Set([
+    'linux-x64',
+    'linux-arm64',
+    'darwin-x64',
+    'darwin-arm64',
+    'win32-x64',
+    'win32-arm64',
+  ]);
+  return supported.has(platform) ? `@dummy3ye/flamer-native-${platform}` : null;
+}
+
+function packagedWorkerPath(worker: NativeWorker) {
+  const packageName = nativePackageName();
+  if (!packageName) return null;
+  try {
+    return require.resolve(`${packageName}/${worker}`);
+  } catch {
+    return null;
+  }
+}
 
 type NativeResponse = {
   protocol: number;
@@ -26,6 +52,8 @@ export function nativeWorkerPath(root: string, worker: NativeWorker) {
   const configured = worker === 'rust' ? process.env.FLAMER_RUST_CORE : process.env.FLAMER_CPP_CORE;
   if (configured) return configured;
   if (process.env.FLAMER_CORE && worker === 'rust') return process.env.FLAMER_CORE;
+  const packaged = packagedWorkerPath(worker);
+  if (packaged) return packaged;
   return worker === 'rust'
     ? join(root, 'native', 'core', 'rust', 'target', 'release', 'flamer-core')
     : join(root, 'native', 'core', 'cpp', 'build', 'flamer-core-cpp');

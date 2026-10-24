@@ -5,7 +5,15 @@ import tseslint from 'typescript-eslint';
 
 export default [
   {
-    ignores: ['node_modules/', 'dist/', 'coverage/', 'report.json', 'package-lock.json'],
+    ignores: [
+      'node_modules/',
+      'dist/',
+      'coverage/',
+      'native/core/cpp/build/',
+      'native/packages/',
+      'report.json',
+      'package-lock.json',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

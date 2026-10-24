@@ -22,6 +22,14 @@
   "files": [
     "dist"
   ],
+  "optionalDependencies": {
+    "@dummy3ye/flamer-native-darwin-arm64": "1.0.0",
+    "@dummy3ye/flamer-native-darwin-x64": "1.0.0",
+    "@dummy3ye/flamer-native-linux-arm64": "1.0.0",
+    "@dummy3ye/flamer-native-linux-x64": "1.0.0",
+    "@dummy3ye/flamer-native-win32-arm64": "1.0.0",
+    "@dummy3ye/flamer-native-win32-x64": "1.0.0"
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -29,6 +37,7 @@
     "native:test": "sh scripts/native-test.sh",
     "native:build:cpp": "sh scripts/native-build-cpp.sh",
     "native:build:all": "sh scripts/native-build.sh",
+    "native:package": "node scripts/package-native.mjs",
     "prepublishOnly": "npm run lint && npm run build && npm test",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
