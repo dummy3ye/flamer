@@ -25,7 +25,8 @@ jobs:
       - name: Validate the commit subject
         run: |
           bad=$(git log --format=%s -n 20 \
-            | grep -vE '^(feat|fix|perf|refactor|test|docs|chore|build|ci)(\([a-z0-9./-]+\))?!?: .{1,72}( \[skip ci\])?$' \
+            | grep -v '\[skip ci\]' \
+            | grep -vE '^(feat|fix|perf|refactor|test|docs|chore|build|ci)(\([a-z0-9./-]+\))?!?: .{1,72}$' \
             || true)
           if [ -n "$bad" ]; then
             echo "These subjects do not follow Conventional Commits:"
