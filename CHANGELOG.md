@@ -8,18 +8,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Optional Rust and C++ native workers under `native/core` for isolated file
-  metrics.
+- Rust and C++ native workers under `native/core` for coordinated native
+  processing.
 - Versioned JSONL worker protocol with TypeScript integration through
-  `--engine typescript|native|auto`.
+  `--engine all|typescript|rust|cpp`.
 - Dedicated native Rust and C++ build/test workflows.
 - Architecture documentation covering runtime layers, protocol, and fallback
   behavior.
 
 ### Fixed
 
-- Native execution failures are explicit in `native` mode and safely fall back
-  to TypeScript in `auto` mode.
+- Native execution failures are explicit for targeted workers and safely fall
+  back to TypeScript in the default `all` mode.
 
 ## [Unreleased]
 
@@ -30,6 +30,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   installation paths.
 - The default `flamer .` execution now coordinates TypeScript, Rust, and C++
   together, with pure TypeScript fallback when native workers are unavailable.
+- Rust owns shared file metrics and Rust-specific checks; C++ owns C/C++-specific
+  checks, so the workers no longer perform the same analysis.
 
 ### Fixed
 

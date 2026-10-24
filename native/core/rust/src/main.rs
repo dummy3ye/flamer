@@ -22,6 +22,7 @@ struct Response {
     operation: String,
     metrics: Metrics,
     errors: Vec<FileError>,
+    findings: Vec<Finding>,
     duration_ms: u128,
 }
 
@@ -38,17 +39,28 @@ struct FileError {
     message: String,
 }
 
+#[derive(Debug, Serialize)]
+struct Finding {
+    category: String,
+    severity: String,
+    title: String,
+    detail: String,
+    files: Vec<String>,
+    lang: String,
+}
+
 fn process(request: Request) -> Response {
     let started = Instant::now();
     let mut metrics = Metrics::default();
     let mut errors = Vec::new();
+    let mut findings = Vec::new();
 
     if request.protocol != PROTOCOL_VERSION {
         errors.push(FileError {
             path: String::new(),
             message: format!("unsupported protocol version {}", request.protocol),
         });
-    } else if request.operation != "file_metrics" {
+    } else if request.operation != "file_metrics" && request.operation != "rust_analysis" {
         errors.push(FileError {
             path: String::new(),
             message: format!("unsupported operation {}", request.operation),
@@ -61,8 +73,10 @@ fn process(request: Request) -> Response {
                 let path = Path::new(&request.root).join(relative);
                 match fs::read(&path) {
                     Ok(contents) => Ok((
+                        relative.clone(),
                         contents.len() as u64,
                         contents.iter().filter(|byte| **byte == b'\n').count() as u64,
+                        String::from_utf8_lossy(&contents).contains(".unwrap()"),
                     )),
                     Err(error) => Err(FileError {
                         path: relative.clone(),
@@ -73,10 +87,23 @@ fn process(request: Request) -> Response {
             .collect();
         for result in results {
             match result {
-                Ok((bytes, lines)) => {
-                    metrics.files += 1;
-                    metrics.bytes += bytes;
-                    metrics.lines += lines;
+                Ok((relative, bytes, lines, has_unwrap)) => {
+                    if request.operation == "file_metrics" {
+                        metrics.files += 1;
+                        metrics.bytes += bytes;
+                        metrics.lines += lines;
+                    } else {
+                        if has_unwrap {
+                            findings.push(Finding {
+                                category: "native".to_string(),
+                                severity: "LOW".to_string(),
+                                title: "Rust unwrap usage detected".to_string(),
+                                detail: "Review unwrap calls on fallible paths and handle errors explicitly.".to_string(),
+                                files: vec![relative],
+                                lang: "rust".to_string(),
+                            });
+                        }
+                    }
                 }
                 Err(error) => errors.push(error),
             }
@@ -86,9 +113,10 @@ fn process(request: Request) -> Response {
     Response {
         protocol: PROTOCOL_VERSION,
         ok: errors.is_empty(),
-        operation: "file_metrics".to_string(),
+        operation: request.operation,
         metrics,
         errors,
+        findings,
         duration_ms: started.elapsed().as_millis(),
     }
 }
@@ -110,6 +138,7 @@ fn main() {
                         path: String::new(),
                         message: format!("invalid request: {error}"),
                     }],
+                    findings: vec![],
                     duration_ms: 0,
                 },
             },
@@ -122,6 +151,7 @@ fn main() {
                     path: String::new(),
                     message: format!("could not read request: {error}"),
                 }],
+                findings: vec![],
                 duration_ms: 0,
             },
         };
@@ -176,5 +206,34 @@ mod tests {
         assert_eq!(response.metrics.files, 1);
         assert_eq!(response.metrics.bytes, 13);
         assert_eq!(response.metrics.lines, 2);
+    }
+
+    #[test]
+    fn reports_rust_unwrap_usage() {
+        let path =
+            std::env::temp_dir().join(format!("flamer-core-{}-unwrap.rs", std::process::id()));
+        fs::write(&path, b"fn main() { let _ = result.unwrap(); }\n").expect("write fixture");
+        let root = path
+            .parent()
+            .expect("fixture parent")
+            .to_string_lossy()
+            .to_string();
+        let file = path
+            .file_name()
+            .expect("fixture name")
+            .to_string_lossy()
+            .to_string();
+
+        let response = process(Request {
+            protocol: PROTOCOL_VERSION,
+            operation: "rust_analysis".to_string(),
+            root,
+            files: vec![file],
+        });
+
+        fs::remove_file(path).expect("remove fixture");
+        assert!(response.ok);
+        assert_eq!(response.findings.len(), 1);
+        assert_eq!(response.findings[0].lang, "rust");
     }
 }

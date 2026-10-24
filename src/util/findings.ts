@@ -24,6 +24,7 @@ export const CATEGORIES = [
   'git',
   'error',
   'unfinished',
+  'native',
 ];
 
 export function rank(severity) {

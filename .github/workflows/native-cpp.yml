@@ -27,5 +27,5 @@ jobs:
         run: cmake --build native/core/cpp/build --config Release --parallel
       - name: Protocol smoke test
         run: |
-          printf '%s\n' '{"protocol":1,"operation":"file_metrics","root":".","files":["README.md"]}' \
+          printf '%s\n' '{"protocol":1,"operation":"cpp_analysis","root":".","files":["native/core/cpp/src/main.cpp"]}' \
             | native/core/cpp/build/flamer-core-cpp

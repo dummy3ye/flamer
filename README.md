@@ -177,7 +177,7 @@ The project uses Node.js and npm as its supported development toolchain.
 `package-lock.json` is the canonical dependency lockfile.
 The current test suite contains **175 tests**.
 
-### Optional native engine
+### Native engine
 
 Flamer runs all three components by default: TypeScript analyzers plus the Rust
 and C++ native workers. The native workers parallelize file metrics and do not

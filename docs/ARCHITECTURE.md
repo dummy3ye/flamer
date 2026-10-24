@@ -31,9 +31,9 @@ newline count. Rust and C++ receive the same file list and run together in the
 default `all` mode. It is intentionally separate from analyzer logic so native
 failures cannot produce different findings or bypass redaction rules.
 
-Rust is the primary worker and is built from
-`native/core/rust/Cargo.toml`. The C++ worker is a protocol-compatible
-alternative built with CMake from `native/core/cpp/CMakeLists.txt`.
+Rust is the shared metrics and Rust-analysis worker and is built from
+`native/core/rust/Cargo.toml`. The C++ worker owns C/C++-specific checks and is
+built with CMake from `native/core/cpp/CMakeLists.txt`.
 
 ## Engine selection
 
@@ -120,6 +120,6 @@ debugging, benchmarking, and degraded environments.
 - Keep findings and report semantics in TypeScript.
 - Keep workers deterministic and communicate only through the versioned
   protocol.
-- Make native execution opt-in until platform packaging and fallback behavior
-  are mature.
+- Keep native execution fallback-safe until platform packaging and release
+  binaries are mature.
 - Add a benchmark before moving more work out of the TypeScript scanner.

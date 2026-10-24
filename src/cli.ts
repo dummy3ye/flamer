@@ -24,7 +24,7 @@ import { scanFile, isSource, isLineStructured } from './scan.js';
 import { ANALYZERS } from './analyzers/index.js';
 import * as git from './util/git.js';
 import { LANGUAGES, allExtensions } from './registry.js';
-import { runNativeMetrics } from './native.js';
+import { runNativeWorker } from './native.js';
 
 const SPEC_VERSION = 1;
 
@@ -150,7 +150,7 @@ function printLanguages() {
   }
   process.stdout.write(`\n${allExtensions().length} file extensions recognized.\n`);
 }
-function run(opts: any) {
+async function run(opts: any) {
   const started = Date.now();
   const root = opts.root;
 
@@ -303,44 +303,63 @@ function run(opts: any) {
   };
 
   if (opts.engine !== 'typescript') {
-    const workers = opts.engine === 'all' ? ['rust', 'cpp'] : [opts.engine];
+    const allFiles = scopedFiles.map((file: any) => file.rel);
+    const cppFiles = scopedFiles
+      .filter((file: any) => ['c', 'cpp'].includes(file.lang))
+      .map((file: any) => file.rel);
+    const rustFiles = scopedFiles
+      .filter((file: any) => file.lang === 'rust')
+      .map((file: any) => file.rel);
+    const jobs =
+      opts.engine === 'all'
+        ? [
+            ['rust', 'file_metrics', allFiles],
+            ['rust', 'rust_analysis', rustFiles],
+            ['cpp', 'cpp_analysis', cppFiles],
+          ]
+        : opts.engine === 'rust'
+          ? [
+              ['rust', 'file_metrics', allFiles],
+              ['rust', 'rust_analysis', rustFiles],
+            ]
+          : [['cpp', 'cpp_analysis', cppFiles]];
     const nativeResults: Record<string, any> = {};
-    try {
-      for (const worker of workers) {
-        const native = runNativeMetrics(
-          root,
-          scopedFiles.map((file: any) => file.rel),
-          worker,
-        );
-        nativeResults[worker] = {
-          files: native.metrics.files,
-          bytes: native.metrics.bytes,
-          lines: native.metrics.lines,
-          durationMs: native.duration_ms,
-        };
-      }
-      report.metadata.native = { engine: opts.engine, workers: nativeResults };
-    } catch (error: any) {
-      const message = error?.message || String(error);
-      if (opts.engine !== 'all') {
-        findings.push(
-          finding({
-            category: 'error',
-            severity: 'CRITICAL',
-            title: 'Native engine failed',
-            detail: message,
-          }),
-        );
-        report.findings = sortFindings(findings);
-        report.metadata.native = { engine: opts.engine, error: message };
-        return { report, exitCode: 2 };
-      }
-      report.metadata.native = {
-        engine: 'typescript',
-        fallback: message,
-        workers: nativeResults,
-      };
+    const failures: string[] = [];
+    const nativeFindings: any[] = [];
+    await Promise.all(
+      jobs.map(async ([worker, operation, files]) => {
+        if (!files.length && operation !== 'file_metrics') return;
+        try {
+          const native = await runNativeWorker(root, files, worker, operation);
+          nativeResults[`${worker}:${operation}`] = {
+            files: native.metrics.files,
+            bytes: native.metrics.bytes,
+            lines: native.metrics.lines,
+            durationMs: native.duration_ms,
+          };
+          nativeFindings.push(...(native.findings || []));
+        } catch (error: any) {
+          failures.push(error?.message || String(error));
+        }
+      }),
+    );
+    if (failures.length && opts.engine !== 'all') {
+      findings.push(
+        finding({
+          category: 'error',
+          severity: 'CRITICAL',
+          title: 'Native engine failed',
+          detail: failures.join('; '),
+        }),
+      );
+      report.findings = sortFindings(findings);
+      report.metadata.native = { engine: opts.engine, errors: failures };
+      return { report, exitCode: 2 };
     }
+    if (!failures.length) findings.push(...nativeFindings);
+    report.metadata.native = failures.length
+      ? { engine: 'typescript', fallback: failures, workers: nativeResults }
+      : { engine: opts.engine, workers: nativeResults };
   }
 
   let exitCode = 0;
@@ -477,13 +496,13 @@ for (const stream of [process.stdout, process.stderr]) {
   });
 }
 
-function main() {
+async function main() {
   const opts = parseArgs(process.argv.slice(2));
 
   if (opts.help) return printHelp();
   if (opts.listLanguages) return printLanguages();
 
-  const { report, exitCode } = run(opts);
+  const { report, exitCode } = await run(opts);
 
   const json = JSON.stringify(report, null, 2);
   if (opts.out) {
@@ -503,4 +522,4 @@ function main() {
   process.exitCode = exitCode;
 }
 
-main();
+void main();
