@@ -21,6 +21,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Native execution failures are explicit for targeted workers and safely fall
   back to TypeScript in the default `all` mode.
 
+## [1.1.1] - 2026-10-24
+
+### Fixed
+
+- Align the main npm package and native worker package versions.
+- Publish all supported Linux, macOS, and Windows x64/arm64 native packages.
+- Include the changelog and architecture documentation in the npm tarball.
+
 ## [1.1.0] - 2026-10-24
 
 ### Added
@@ -124,7 +132,8 @@ Measured on a 3.0 GB monorepo of 98,161 files, 71,150 of them source:
 - `poison` is a separate project. Flamer does not import it, and the handoff is
   a runtime capability check in `SKILL.md` rather than a code dependency.
 
-[Unreleased]: https://github.com/dummy3ye/flamer/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/dummy3ye/flamer/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/dummy3ye/flamer/releases/tag/v1.1.1
 [1.1.0]: https://github.com/dummy3ye/flamer/releases/tag/v1.1.0
 [1.0.0]: https://github.com/dummy3ye/flamer/releases/tag/v1.0.0
 [0.1.6]: https://github.com/dummy3ye/flamer/releases/tag/v0.1.6

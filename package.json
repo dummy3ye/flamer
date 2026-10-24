@@ -1,6 +1,6 @@
 {
   "name": "flamerjs",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Language-agnostic code health auditor that walks a repository once and reports what is wrong with it",
   "license": "MIT",
   "type": "module",
@@ -20,12 +20,18 @@
     "flamerjs": "./dist/cli.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "docs/ARCHITECTURE.md"
   ],
   "optionalDependencies": {
     "@dummy3ye/flamer-native-darwin-arm64": "1.1.1",
     "@dummy3ye/flamer-native-darwin-x64": "1.1.1",
+    "@dummy3ye/flamer-native-linux-arm64": "1.1.1",
     "@dummy3ye/flamer-native-linux-x64": "1.1.1",
+    "@dummy3ye/flamer-native-win32-arm64": "1.1.1",
     "@dummy3ye/flamer-native-win32-x64": "1.1.1"
   },
   "scripts": {
