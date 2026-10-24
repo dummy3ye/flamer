@@ -16,6 +16,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Dedicated Codecov coverage reporting and CodeQL analysis workflows.
 
+## [0.1.6] - 2026-10-24
+
+### Fixed
+
+- Updated the README Quick Start to use the published `flamerjs` package with
+  `npx`, local installation, and global installation examples.
+- Updated CLI examples to use the published `flamerjs` command while retaining
+  the source checkout workflow for contributors.
+
 ## [0.1.5] - 2026-10-24
 
 ### Added
@@ -87,6 +96,7 @@ Measured on a 3.0 GB monorepo of 98,161 files, 71,150 of them source:
 - `poison` is a separate project. Flamer does not import it, and the handoff is
   a runtime capability check in `SKILL.md` rather than a code dependency.
 
-[Unreleased]: https://github.com/dummy3ye/flamer/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/dummy3ye/flamer/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/dummy3ye/flamer/releases/tag/v0.1.6
 [0.1.5]: https://github.com/dummy3ye/flamer/releases/tag/v0.1.5
 [0.1.0]: https://github.com/OWNER/flamer/releases/tag/v0.1.0
