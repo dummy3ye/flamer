@@ -2,10 +2,13 @@
 
 **A fast sanity checker for AI-assisted codebases.**
 
-[![CI](https://github.com/dummy3ye/flamer/actions/workflows/ci.yml/badge.svg)](https://github.com/dummy3ye/flamer/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/dummy3ye/flamer/branch/master/graph/badge.svg)](https://codecov.io/gh/dummy3ye/flamer)
-[![npm](https://img.shields.io/npm/v/flamerjs)](https://www.npmjs.com/package/flamerjs)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/dummy3ye/flamer/ci.yml?branch=master&style=for-the-badge&label=CI&labelColor=101418&color=9ccbfb)](https://github.com/dummy3ye/flamer/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/dummy3ye/flamer?style=for-the-badge&label=coverage&labelColor=101418&color=b9c8da)](https://codecov.io/gh/dummy3ye/flamer)
+[![npm](https://img.shields.io/npm/v/flamerjs?style=for-the-badge&labelColor=101418&color=d3bfe6)](https://www.npmjs.com/package/flamerjs)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge&labelColor=101418&color=d3bfe6)](LICENSE)
+[![GitHub last commit](https://img.shields.io/github/last-commit/dummy3ye/flamer?style=for-the-badge&labelColor=101418&color=9ccbfb)](https://github.com/dummy3ye/flamer/commits/master)
+[![GitHub Repo stars](https://img.shields.io/github/stars/dummy3ye/flamer?style=for-the-badge&labelColor=101418&color=b9c8da)](https://github.com/dummy3ye/flamer/stargazers)
+[![GitHub repo size](https://img.shields.io/github/repo-size/dummy3ye/flamer?style=for-the-badge&labelColor=101418&color=d3bfe6)](https://github.com/dummy3ye/flamer)
 
 Flamer scans a repository for the common mistakes that appear when software is
 assembled quickly with AI or other “vibe coding” workflows: unfinished
