@@ -47,7 +47,13 @@ jobs:
           npm test
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if npm view "flamerjs@$version" version >/dev/null 2>&1; then
+            echo "flamerjs@$version is already published; skipping npm publish."
+          else
+            npm publish --provenance --access public
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
