@@ -60,41 +60,45 @@ can be used locally, in pull requests, or in CI.
 
 ## Quick start
 
-Run Flamer from a checkout:
+Run the published CLI without installing it permanently:
 
 ```bash
-npm ci
-npm run build
-node dist/cli.js .
+npx flamerjs .
 ```
 
-After publishing, install the CLI globally:
+For a project-local installation, add Flamer as a development dependency:
+
+```bash
+npm install --save-dev flamerjs
+npx flamerjs .
+```
+
+Or install it globally if you use it across repositories:
 
 ```bash
 npm install --global flamerjs
 flamerjs .
 ```
 
-During development, `npm run dev` watches and rebuilds `dist/cli.js`.
 The default output is a colorized terminal summary when run interactively.
 Use `--format json` for automation and machine-readable output.
 
 For a human-readable report:
 
 ```bash
-node dist/cli.js . --format summary
+flamerjs . --format summary
 ```
 
 Analyze another repository:
 
 ```bash
-node dist/cli.js /path/to/repository --format summary
+flamerjs /path/to/repository --format summary
 ```
 
 ## CLI
 
 ```text
-node dist/cli.js [path] [options]
+flamerjs [path] [options]
 ```
 
 | Option                      | Description                                                                   |
@@ -145,13 +149,21 @@ Findings are sorted by severity. Credential values are always redacted.
 
 ## Development
 
+Clone the repository when you want to contribute or work on the scanner itself:
+
 ```bash
 npm ci
-npm run dev             # rebuild on source changes
+npm run dev             # watch and rebuild dist/cli.js
 npm test                # run the test suite
 npm run lint
 npm run format:check
 npm run build
+```
+
+To run the local build directly:
+
+```bash
+node dist/cli.js .
 ```
 
 The project uses Node.js and npm as its supported development toolchain.
