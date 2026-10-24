@@ -53,7 +53,7 @@ jobs:
 
       - name: Publish to GitHub Packages
         run: |
-          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> "$HOME/.npmrc"
+          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> "$NPM_CONFIG_USERCONFIG"
           cp package.json "$RUNNER_TEMP/package.json"
           trap 'cp "$RUNNER_TEMP/package.json" package.json' EXIT
           npm pkg set name="@dummy3ye/flamerjs"

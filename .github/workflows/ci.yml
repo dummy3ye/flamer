@@ -96,7 +96,7 @@ jobs:
 
       - name: The public README must not lie about its own counts
         run: |
-          actual=$(npm test 2>&1 | sed -nE 's/.*Tests[[:space:]]+([0-9]+) passed.*/\1/p' | tail -1)
+          actual=$(NO_COLOR=1 npm test 2>&1 | sed -nE 's/.*Tests[[:space:]]+([0-9]+) passed.*/\1/p' | tail -1)
           claimed=$(grep -oP '\b[0-9]+(?= tests\b)' README.md | head -1)
           if [ "$actual" != "$claimed" ]; then
             echo "README claims $claimed tests, suite reports $actual"
