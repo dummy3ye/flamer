@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{self, BufRead, Write};
@@ -53,18 +54,31 @@ fn process(request: Request) -> Response {
             message: format!("unsupported operation {}", request.operation),
         });
     } else {
-        for relative in request.files {
-            let path = Path::new(&request.root).join(&relative);
-            match fs::read(&path) {
-                Ok(contents) => {
-                    metrics.files += 1;
-                    metrics.bytes += contents.len() as u64;
-                    metrics.lines += contents.iter().filter(|byte| **byte == b'\n').count() as u64;
+        let results: Vec<_> = request
+            .files
+            .par_iter()
+            .map(|relative| {
+                let path = Path::new(&request.root).join(&relative);
+                match fs::read(&path) {
+                    Ok(contents) => Ok((
+                        contents.len() as u64,
+                        contents.iter().filter(|byte| **byte == b'\n').count() as u64,
+                    )),
+                    Err(error) => Err(FileError {
+                        path: relative.clone(),
+                        message: error.to_string(),
+                    }),
                 }
-                Err(error) => errors.push(FileError {
-                    path: relative,
-                    message: error.to_string(),
-                }),
+            })
+            .collect();
+        for result in results {
+            match result {
+                Ok((bytes, lines)) => {
+                    metrics.files += 1;
+                    metrics.bytes += bytes;
+                    metrics.lines += lines;
+                }
+                Err(error) => errors.push(error),
             }
         }
     }

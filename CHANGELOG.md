@@ -23,6 +23,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Parallel native file processing in the Rust and C++ workers.
+- `scripts/install.sh` with npm installation and guarded native release-asset
+  installation paths.
+
 ### Fixed
 
 - CI now builds before tests that execute the bundled CLI.

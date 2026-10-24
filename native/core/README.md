@@ -14,8 +14,11 @@ Requests use protocol version `1`:
 { "protocol": 1, "operation": "file_metrics", "root": ".", "files": ["src/cli.ts"] }
 ```
 
-The Rust and C++ workers return byte and newline counts. A native failure is
+The Rust and C++ workers parallelize independent file reads and return byte and
+newline counts. A native failure is
 reported by the CLI in `auto` mode and is fatal in explicit `native` mode.
+The workers are helpers, not standalone CLI replacements; the npm-installed
+`flamerjs` command remains the user-facing entry point.
 
 ## Rust worker
 

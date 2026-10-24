@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <future>
 #include <string>
 #include <vector>
 
@@ -115,18 +116,30 @@ int main() {
     } else if (!field_string(input, "root", root)) {
       errors.emplace_back("missing root");
     } else {
+      std::vector<std::future<std::pair<bool, std::pair<std::uint64_t, std::uint64_t>>>> tasks;
       for (const auto& relative : files) {
+        tasks.emplace_back(std::async(std::launch::async, [&, relative]() {
         std::ifstream file(std::filesystem::path(root) / relative, std::ios::binary);
-        if (!file) {
-          errors.emplace_back("could not read " + relative);
-          continue;
-        }
+        if (!file) return std::make_pair(false, std::make_pair(std::uint64_t{0}, std::uint64_t{0}));
+        std::uint64_t bytes = 0;
+        std::uint64_t lines = 0;
         char character;
         while (file.get(character)) {
-          ++metrics.bytes;
-          if (character == '\n') ++metrics.lines;
+          ++bytes;
+          if (character == '\n') ++lines;
         }
-        ++metrics.files;
+        return std::make_pair(true, std::make_pair(bytes, lines));
+        }));
+      }
+      for (std::size_t i = 0; i < tasks.size(); ++i) {
+        const auto result = tasks[i].get();
+        if (!result.first) {
+          errors.emplace_back("could not read " + files[i]);
+        } else {
+          ++metrics.files;
+          metrics.bytes += result.second.first;
+          metrics.lines += result.second.second;
+        }
       }
     }
 

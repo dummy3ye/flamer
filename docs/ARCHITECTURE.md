@@ -93,6 +93,26 @@ cmake --build native/core/cpp/build --config Release
 Native builds are checked independently in the Native Rust and Native C++
 GitHub Actions workflows. Compiled output is ignored and is not committed.
 
+## Release and installation roadmap
+
+The npm package remains the required, portable installation:
+
+```bash
+npm install --global flamerjs
+```
+
+The planned native distribution publishes one worker per supported
+OS/architecture. `scripts/install.sh native` selects the matching Rust worker
+asset, while npm remains the fallback for unsupported platforms. The release
+workflow must build, name, checksum, and attach Linux, macOS, and Windows
+worker artifacts before native installation is advertised as generally
+available.
+
+The eventual bundled release keeps the TypeScript CLI as the orchestration
+layer, packages the Rust worker as the default native engine, and may include
+the C++ worker as a platform-specific alternative. The current workers are not
+standalone CLI replacements and are not loaded simultaneously.
+
 ## Design constraints
 
 - Keep the default npm installation dependency-free beyond Node.js.

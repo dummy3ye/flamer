@@ -194,6 +194,16 @@ The native protocol and worker details are documented in
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the runtime layers,
 worker protocol, engine selection, and native development workflow.
 
+For the npm installation path:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/dummy3ye/flamer/master/scripts/install.sh | sh
+```
+
+Native release binaries will use the same script with
+`FLAMER_VERSION=1.0.0 .../scripts/install.sh native` once platform assets are
+published.
+
 ## How it works
 
 1. Detect the repository layout, languages, and ecosystems.
