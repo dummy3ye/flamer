@@ -1,7 +1,6 @@
 # Commit convention
 
-Conventional Commits, enforced by `commitlint` in CI once the workflow is wired
-up. Until then, follow it by hand.
+Conventional Commits, enforced by the dedicated `commitlint.yml` workflow.
 
 ```
 <type>(<scope>): <subject>
